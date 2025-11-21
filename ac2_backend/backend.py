@@ -6,7 +6,7 @@ client = MongoClient("mongodb://localhost:27017/")
 db = client["objectives_db"]
 objectives_col = db["objectives"]
 
-def create_objective(title, description, invited_names, resolution_date):
+def create_objective(title, description, invited_names, resolution_date, published = False):
     objective_doc = {
         "title": title,
         "description": description,
@@ -15,7 +15,8 @@ def create_objective(title, description, invited_names, resolution_date):
         # invited list lives inside the objective
         "invited_people": invited_names,   # list of strings
         # empty list at start
-        "commitments": []
+        "commitments": [],
+        "published": False
     }
 
     result = objectives_col.insert_one(objective_doc)
@@ -44,3 +45,18 @@ def commit(objective_id, name, number):
             }}
         )
         return "Commitment stored."
+    
+def serve_view (objective_id):
+    objective = objectives_col.find_one({"_id": ObjectId(objective_id)})
+    if objective.get("published") == False:
+        return {"title": objective.get("title"),
+                "description": objective.get("description"),
+                "resolution_date": objective.get("resolution_date")
+                }
+    else:
+        return {"title": objective.get("title"),
+                "description": objective.get("description"),
+                "resolution_date": objective.get("resolution_date"),
+                "commitments": objective.get("commitments")
+                }
+    
