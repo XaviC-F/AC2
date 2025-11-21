@@ -5,10 +5,15 @@ import threading
 import time
 from datetime import datetime
 
+from fastapi import FastAPI
+
+app = FastAPI()
+
 client = MongoClient("mongodb://localhost:27017/")
 db = client["objectives_db"]
 objectives_col = db["objectives"]
 
+@app.post("/objective")
 def create_objective(title, description, invited_names, resolution_date, published = False):
 
     if isinstance(resolution_date, str):
@@ -47,6 +52,7 @@ def is_past_resolution_date(objective):
 def check_equilibrium(objective):
     return
 
+app.patch("/commit")
 def commit(objective_id, name, number):
 
     objective = objectives_col.find_one({"_id": ObjectId(objective_id)})
@@ -81,6 +87,7 @@ def commit(objective_id, name, number):
 
         return "Commitment stored."
     
+app.get("/objective/{objective_id}")    
 def serve_view (objective_id):
     objective = objectives_col.find_one({"_id": ObjectId(objective_id)})
     if objective.get("published") == False:
