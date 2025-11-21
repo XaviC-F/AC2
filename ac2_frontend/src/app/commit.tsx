@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Lock, Users, Target, CheckCircle, XCircle } from 'lucide-react';
+import { Lock, Users, Target, CheckCircle, XCircle, Upload, X } from 'lucide-react';
 
 export default function CommitmentPage() {
   const [selectedChoice, setSelectedChoice] = useState(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [name, setName] = useState('');
+  const [uploadedFiles, setUploadedFiles] = useState([]);
 
   // Mock objective data - in real app, this would come from props/API
   const objective = {
@@ -24,8 +26,17 @@ export default function CommitmentPage() {
     setSelectedChoice(choice);
   };
 
+  const handleFileUpload = (e) => {
+    const files = Array.from(e.target.files);
+    setUploadedFiles([...uploadedFiles, ...files]);
+  };
+
+  const removeFile = (index) => {
+    setUploadedFiles(uploadedFiles.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async () => {
-    if (!selectedChoice) return;
+    if (!selectedChoice || !name.trim()) return;
     
     setIsSubmitting(true);
     
@@ -125,7 +136,7 @@ export default function CommitmentPage() {
 
             {/* Threshold Info */}
             <div className="bg-slate-50 rounded-xl p-6 mt-6">
-              <div className="grid md:grid-cols-3 gap-6">
+              <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <div className="text-sm text-slate-600 mb-1">Threshold Required</div>
                   <div className="text-2xl font-bold text-slate-900">
@@ -133,32 +144,10 @@ export default function CommitmentPage() {
                   </div>
                 </div>
                 <div>
-                  <div className="text-sm text-slate-600 mb-1">Current Progress</div>
-                  <div className="text-2xl font-bold text-blue-600">
-                    {Math.round((objective.currentCommitments / objective.totalEligible) * 100)}%
-                  </div>
-                </div>
-                <div>
                   <div className="text-sm text-slate-600 mb-1">Deadline</div>
                   <div className="text-lg font-bold text-slate-900">
                     {new Date(objective.deadline).toLocaleDateString()}
                   </div>
-                </div>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="mt-4">
-                <div className="flex justify-between text-sm text-slate-600 mb-2">
-                  <span>{objective.currentCommitments} commitments</span>
-                  <span>{objective.totalEligible} eligible</span>
-                </div>
-                <div className="w-full bg-slate-200 rounded-full h-3">
-                  <div 
-                    className="bg-blue-600 h-3 rounded-full transition-all duration-500"
-                    style={{ 
-                      width: `${Math.min((objective.currentCommitments / objective.totalEligible) * 100, 100)}%` 
-                    }}
-                  />
                 </div>
               </div>
             </div>
@@ -170,7 +159,23 @@ export default function CommitmentPage() {
               Your Commitment
             </h3>
 
-            <div className="grid md:grid-cols-2 gap-4 mb-8">
+            {/* Name Field */}
+            <div className="mb-6">
+              <label htmlFor="name" className="block text-sm font-semibold text-slate-700 mb-2">
+                Your Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter your full name"
+                className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                required
+              />
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4 mb-6">
               <button
                 onClick={() => handleCommitment('commit')}
                 className={`p-6 rounded-xl border-2 transition-all ${
@@ -226,6 +231,66 @@ export default function CommitmentPage() {
               </button>
             </div>
 
+            {/* File Upload */}
+            <div className="mb-8">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Supporting Documents <span className="text-slate-500">(Optional)</span>
+              </label>
+              <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-blue-400 transition-colors">
+                <input
+                  type="file"
+                  id="file-upload"
+                  multiple
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="file-upload"
+                  className="cursor-pointer"
+                >
+                  <Upload className="w-10 h-10 text-slate-400 mx-auto mb-3" />
+                  <div className="text-sm text-slate-600 mb-1">
+                    <span className="text-blue-600 font-semibold">Click to upload</span> or drag and drop
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    PDF, DOC, Images up to 10MB
+                  </div>
+                </label>
+              </div>
+
+              {/* Uploaded Files List */}
+              {uploadedFiles.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  {uploadedFiles.map((file, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between bg-slate-50 px-4 py-3 rounded-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                          <Upload className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-slate-900">
+                            {file.name}
+                          </div>
+                          <div className="text-xs text-slate-500">
+                            {(file.size / 1024).toFixed(1)} KB
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => removeFile(index)}
+                        className="text-slate-400 hover:text-red-500 transition-colors"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Privacy Notice */}
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
               <div className="flex gap-3">
@@ -241,9 +306,9 @@ export default function CommitmentPage() {
             {/* Submit Button */}
             <button
               onClick={handleSubmit}
-              disabled={!selectedChoice || isSubmitting}
+              disabled={!selectedChoice || !name.trim() || isSubmitting}
               className={`w-full py-4 px-6 rounded-xl font-bold text-lg transition-all ${
-                selectedChoice && !isSubmitting
+                selectedChoice && name.trim() && !isSubmitting
                   ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl'
                   : 'bg-slate-200 text-slate-400 cursor-not-allowed'
               }`}
