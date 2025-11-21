@@ -1,3 +1,4 @@
+from typing import List
 from pymongo import MongoClient
 from bson import ObjectId
 
@@ -5,6 +6,7 @@ import threading
 import time
 from datetime import datetime
 
+from ac2_backend.threshold import ResolutionStrategy, ThresholdModel
 from fastapi import FastAPI
 
 app = FastAPI()
@@ -14,7 +16,7 @@ db = client["objectives_db"]
 objectives_col = db["objectives"]
 
 @app.post("/objective")
-def create_objective(title, description, invited_names, resolution_date, published = False):
+def create_objective(title: str, description: str, invited_names: List[str], resolution_date: datetime, published: bool = False):
 
     if isinstance(resolution_date, str):
         resolution_date = datetime.fromisoformat(resolution_date)
@@ -50,9 +52,10 @@ def is_past_resolution_date(objective):
     return today > res_date.date() 
 
 def check_equilibrium(objective):
-    return
+    threshold_model = ThresholdModel(list(map(lambda o: (o.get("commitments").get("name"), o.get("commitments").get("number")), objectives)), ResolutionStrategy.OPTIMISTIC)
+    
 
-app.patch("/commit")
+@app.patch("/commit")
 def commit(objective_id, name, number):
 
     objective = objectives_col.find_one({"_id": ObjectId(objective_id)})
