@@ -1,27 +1,33 @@
-from typing import List, Optional
-from pymongo import MongoClient
-from bson import ObjectId
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
-
 import logging
 import threading
 import time
 from datetime import datetime
+from typing import List, Optional
+
+from bson import ObjectId
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+from pymongo import MongoClient
 
 from ac2_backend.core.threshold import ResolutionStrategy, ThresholdModel
 
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.encoders import jsonable_encoder
-
 app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 client = MongoClient("mongodb://localhost:27017/")
 db = client["objectives_db"]
 objectives_col = db["objectives"]
+
 
 class Objective(BaseModel):
     title: str
@@ -31,10 +37,9 @@ class Objective(BaseModel):
     resolution_strategy: Optional[ResolutionStrategy] = ResolutionStrategy.ASAP
     minimum_percentage: Optional[int]  # ignored
 
+
 @app.post("/objective")
-def create_objective(
-    o: Objective
-):
+def create_objective(o: Objective):
     if isinstance(o.resolution_date, str):
         o.resolution_date = datetime.fromisoformat(o.resolution_date)
 
@@ -69,6 +74,7 @@ def is_past_resolution_date(objective):
     today = datetime.utcnow().date()
     return today > res_date.date()
 
+
 def compute_current_equilibrium(objective):
     commitments = objective.get("commitments", [])
     threshold_model = ThresholdModel(
@@ -85,19 +91,19 @@ def compute_current_equilibrium(objective):
     )
     return threshold_model.resolve()
 
+
 class Commitment(BaseModel):
-    
     name: str
-    number: int
+    number: int = Field(..., ge=0)
+
 
 @app.patch("/commit")
 def commit(objective_id: str, c: Commitment):
-    
     objective = objectives_col.find_one({"_id": ObjectId(objective_id)})
     if objective is None:
-        return {"message":"Objective not found."}
+        return {"message": "Objective not found."}
     elif is_past_resolution_date(objective):
-        return {"message":"The resolution date has been passed."}
+        return {"message": "The resolution date has been passed."}
 
     invited_names = objective.get("invited_people", [])
     if c.name not in invited_names:
@@ -133,9 +139,10 @@ def commit(objective_id: str, c: Commitment):
             )
 
         return {"message": "Commitment stored."}
-    
-@app.get("/objective/{objective_id}")    
-def serve_view (objective_id):
+
+
+@app.get("/objective/{objective_id}")
+def serve_view(objective_id):
     objective = objectives_col.find_one({"_id": ObjectId(objective_id)})
     if not objective.get("published"):
         return {
@@ -171,6 +178,7 @@ def get_most_recently_published(limit: int = 10):
         )
     )
 
+
 @app.get("/debug/objective/{objective_id}")
 def debug_objective(objective_id: str):
     objective = objectives_col.find_one({"_id": ObjectId(objective_id)})
@@ -181,9 +189,10 @@ def debug_objective(objective_id: str):
     objective["_id"] = str(objective["_id"])
     return jsonable_encoder(objective)
 
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    exc_str = f'{exc}'.replace('\n', ' ').replace('   ', ' ')
+    exc_str = f"{exc}".replace("\n", " ").replace("   ", " ")
     logging.error(f"{request}: {exc_str}")
     return JSONResponse(
         status_code=422,
