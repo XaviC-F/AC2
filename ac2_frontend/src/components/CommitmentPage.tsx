@@ -13,7 +13,7 @@ interface ObjectiveWithDetails extends Objective {
   deadline?: string;
 }
 
-export default function SubmittedCommitment() {
+export default function CommitmentPage() {
   const searchParams = useSearchParams();
 
   const [selectedChoice, setSelectedChoice] = useState<'commit' | 'decline' | null>(null);
