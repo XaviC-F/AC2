@@ -7,7 +7,10 @@ import time
 from datetime import datetime
 
 from ac2_backend.threshold import ResolutionStrategy, ThresholdModel
+
 from fastapi import FastAPI
+from fastapi import HTTPException
+from fastapi.encoders import jsonable_encoder
 
 app = FastAPI()
 
@@ -36,6 +39,7 @@ def create_objective(
         "invited_people": invited_names,  # list of strings
         # empty list at start
         "commitments": [],
+        "published": published
         "published": published,
         "modified_at": datetime.utcnow().isoformat(),
     }
@@ -124,6 +128,9 @@ def commit(objective_id, name, number):
 
 @app.get("/objective/{objective_id}")
 def serve_view(objective_id):
+    
+@app.get("/objective/{objective_id}")    
+def serve_view (objective_id):
     objective = objectives_col.find_one({"_id": ObjectId(objective_id)})
     if not objective.get("published"):
         return {
@@ -156,3 +163,18 @@ def get_most_recently_published(limit: int = 10):
             objectives,
         )
     )
+        return {"title": objective.get("title"),
+                "description": objective.get("description"),
+                "resolution_date": objective.get("resolution_date"),
+                "commitments": objective.get("commitments")
+                }
+
+@app.get("/debug/objective/{objective_id}")
+def debug_objective(objective_id: str):
+    objective = objectives_col.find_one({"_id": ObjectId(objective_id)})
+    if objective is None:
+        raise HTTPException(status_code=404, detail="Objective not found")
+
+    # Convert ObjectId + datetime to JSON-friendly types
+    objective["_id"] = str(objective["_id"])
+    return jsonable_encoder(objective)
