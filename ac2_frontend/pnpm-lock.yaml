@@ -9,7 +9,7 @@ importers:
   .:
     dependencies:
       lucide-react:
-        specifier: 0.554.0
+        specifier: ^0.554.0
         version: 0.554.0(react@19.2.0)
       next:
         specifier: 16.0.3

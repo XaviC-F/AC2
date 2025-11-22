@@ -1,7 +1,7 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { Lock, Target, CheckCircle, XCircle, Upload, X } from 'lucide-react';
 import { API_URL } from '@/config/config';
 import { Objective } from '../objective/data';
@@ -12,7 +12,7 @@ interface ObjectiveWithDetails extends Objective {
   deadline?: string;
 }
 
-export default function CommitmentPage() {
+function CommitmentPageContent() {
   const searchParams = useSearchParams();
 
   const [selectedChoice, setSelectedChoice] = useState<'commit' | 'decline' | null>(null);
@@ -402,5 +402,13 @@ export default function CommitmentPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CommitmentPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-slate-600">Loading...</div>}>
+      <CommitmentPageContent />
+    </Suspense>
   );
 }

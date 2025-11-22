@@ -2,7 +2,7 @@
 
 import { notFound, useParams } from 'next/navigation';
 import { getObjectiveById } from '../data';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { API_URL } from '@/config/config';
 
 function formatTimeLeft(resolutionDate: string): string {
@@ -59,7 +59,7 @@ export default function ObjectivePage() {
         setObjective(data);
         setIsPublished(data.published);
       } catch (e) {
-        if (!cancelled) setObjectiveError(e.message || "Failed to load objective");
+        if (!cancelled) setObjectiveError((e instanceof Error ? e.message : String(e)) || "Failed to load objective");
       } finally {
         if (!cancelled) setIsLoadingObjective(false);
       }
