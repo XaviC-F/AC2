@@ -20,8 +20,7 @@ export default function PublishedObjectiveList() {
 
     async function loadObjective() {
         try {
-
-        const res = await fetch(`${API_URL}recently_published}`,
+        const res = await fetch(`${API_URL}recently_published`,
             {method: "GET"});
         if (!res.ok) throw new Error(`Failed to load objectives (${res.status})`);
 
@@ -30,15 +29,14 @@ export default function PublishedObjectiveList() {
 
         setObjectives(data);
         } catch (e) {
-        let message = "Failed to load objectives";
-        if (e instanceof Error) message = e.message
+        const message = (e instanceof Error ? e.message : String(e)) || "Failed to load objectives";
         alert(message);
         }
     }
 
     loadObjective();
     return () => { cancelled = true; };
-    });
+    }, []);
 
 
     return (

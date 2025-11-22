@@ -13,19 +13,22 @@ export default function AC2Homepage() {
       title: "Labor Organizing",
       description: "Amazon workers want to unionize, but only if they know 10,000+ others will join them. Without this certainty, individuals risk retaliation while the effort fails.",
       icon: Users,
-      color: "blue"
+      color: "blue",
+      slug: "labor-organizing"
     },
     {
       title: "Political Change",
       description: "Citizens in an authoritarian regime oppose the government but won't speak out unless they know the majority shares their views. Fear of being the only dissenter keeps everyone silent.",
       icon: Shield,
-      color: "purple"
+      color: "purple",
+      slug: "political-change"
     },
     {
       title: "Speaking Truth to Power",
       description: "Harvey Weinstein's victims knew they weren't alone, but each woman feared going public without others. The first to speak out faced the full weight of his power and disbelief.",
       icon: Lock,
-      color: "red"
+      color: "red",
+      slug: "speaking-truth-to-power"
     }
   ];
 
@@ -73,6 +76,9 @@ export default function AC2Homepage() {
               <a href="#how-it-works" className="group relative transition hover:text-white after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-px after:bg-current after:transition-all after:duration-300 hover:after:w-full">
                 How It Works
               </a>
+              <Link href="/blog" className="group relative transition hover:text-white after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-px after:bg-current after:transition-all after:duration-300 hover:after:w-full no-underline">
+                Blog
+              </Link>
               <a href="#get-started" className="group relative transition hover:text-white after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-px after:bg-current after:transition-all after:duration-300 hover:after:w-full">
                 Get Started
               </a>
@@ -121,32 +127,32 @@ export default function AC2Homepage() {
                 <div className="h-px w-12 sm:w-16 bg-white/40"></div>
               </div>
               <h2 className="mb-6 sm:mb-8 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light tracking-wide text-white">
-                The Coordination Problem
+                Stronger Together
               </h2>
               <div className="mb-8 sm:mb-10 border-l-2 border-white/30 pl-4 sm:pl-6">
                 <h3 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-light leading-tight text-white">
-                  Critical collective actions fail not because people don't want to act, but because they don't know if others will act with them.
+                  Shared problems require coordination to solve. Many issues which effect us together require us to act together.
                 </h3>
               </div>
               <div className="space-y-4 sm:space-y-6">
                 <p className="text-sm sm:text-base leading-relaxed text-white/75 lg:text-lg">
-                  When individuals want to coordinate but fear being the only ones to act, they remain silent. This creates a coordination trap where everyone wants change but no one acts.
+                  When we want to act together but fear being the only ones to act, we remain silent. This creates a terrible trap, where despite everyone wanting change, no one acts to bring it about.
                 </p>
                 <p className="text-sm sm:text-base leading-relaxed text-white/75 lg:text-lg">
-                  Our <span className="font-medium text-white">anonymous credible commitments</span> solve this by allowing people to commit privately and reveal conditionally—only when enough others have also committed.
+                  Our <span className="font-medium text-white">anonymous credible commitments</span> solve this by allowing people to commit privately and reveal conditionally, only making their support known when enough other people have also committed.
                 </p>
                 <p className="text-sm sm:text-base leading-relaxed text-white/75 lg:text-lg">
-                  You set your own threshold: the minimum number of commitments needed before you're willing to be revealed. This transforms collective action from a leap of faith into a calculated decision.
+                  You set your own commitment threshold; the minimum number of other people revealing their commitment before you will reveal yours. This transforms collective action from a leap of faith into a calculated decision done together.
                 </p>
               </div>
               <div className="mt-8 sm:mt-12 grid grid-cols-2 gap-4 sm:gap-8 border-t border-white/10 pt-6 sm:pt-8">
                 <div className="group">
                   <div className="mb-2 text-2xl sm:text-3xl font-light text-white transition-colors group-hover:text-white/80">Anonymous</div>
-                  <div className="text-xs sm:text-sm uppercase tracking-wider text-white/60">Until Threshold</div>
+                  <div className="text-xs sm:text-sm uppercase tracking-wider text-white/60">Until Collective</div>
                 </div>
                 <div className="group">
                   <div className="mb-2 text-2xl sm:text-3xl font-light text-white transition-colors group-hover:text-white/80">Credible</div>
-                  <div className="text-xs sm:text-sm uppercase tracking-wider text-white/60">Mathematical Proof</div>
+                  <div className="text-xs sm:text-sm uppercase tracking-wider text-white/60">Mathematical Guarantee</div>
                 </div>
               </div>
             </div>
@@ -199,11 +205,12 @@ export default function AC2Homepage() {
                 red: "from-red-500/20"
               };
               return (
-                <div
+                <Link
                   key={idx}
+                  href={`/blog/${useCase.slug}`}
                   onMouseEnter={() => setHoveredCard(idx)}
                   onMouseLeave={() => setHoveredCard(null)}
-                  className="group relative overflow-hidden rounded-xl border border-white/20 bg-white/5 p-6 sm:p-8 md:p-10 transition-all hover:border-white/40"
+                  className="group relative overflow-hidden rounded-xl border border-white/20 bg-white/5 p-6 sm:p-8 md:p-10 transition-all hover:border-white/40 no-underline block"
                 >
                   {/* Gradient overlay */}
                   <div className={`absolute inset-0 bg-gradient-to-br ${colorMap[useCase.color as keyof typeof colorMap]} pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity`}></div>
@@ -226,7 +233,7 @@ export default function AC2Homepage() {
                       </p>
                     </div>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>

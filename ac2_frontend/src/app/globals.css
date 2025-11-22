@@ -39,3 +39,54 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
+
+/* Blog content styling */
+.blog-content {
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+.blog-content p {
+  margin-bottom: 1.5rem;
+  line-height: 1.75;
+}
+
+.blog-content h2 {
+  font-size: 1.75rem;
+  font-weight: 300;
+  letter-spacing: 0.025em;
+  color: white;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.blog-content h3 {
+  font-size: 1.5rem;
+  font-weight: 300;
+  letter-spacing: 0.025em;
+  color: white;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.blog-content a {
+  color: white;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: rgba(255, 255, 255, 0.4);
+  transition: text-decoration-color 0.2s;
+}
+
+.blog-content a:hover {
+  text-decoration-color: white;
+}
+
+.blog-content ul,
+.blog-content ol {
+  margin-bottom: 1.5rem;
+  padding-left: 1.5rem;
+}
+
+.blog-content li {
+  margin-bottom: 0.5rem;
+  line-height: 1.75;
+}
