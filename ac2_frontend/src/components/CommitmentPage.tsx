@@ -75,7 +75,7 @@ export default function CommitmentPage() {
     setUploadedFiles(uploadedFiles.filter((_, i) => i !== index));
   };
 
-  const isCommitNumberValid = /^\d+$/.test(commitNumber.trim()) && Number(commitNumber) >= 1 && Number(commitNumber) <= 100;
+  const isCommitNumberValid = /^\d+$/.test(commitNumber.trim()) && Number(commitNumber) >= 1;
 
   const handleSubmit = async () => {
     if (
@@ -367,8 +367,8 @@ export default function CommitmentPage() {
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter your full name"
-                  className="w-full px-4 py-3 bg-white/5 border border-white/20 text-white placeholder-white/30 focus:border-white/40 focus:outline-none focus:bg-white/10 transition-all font-light"
+                  placeholder="Full Name"
+                  className="w-full px-4 py-3 bg-white/5 border border-white/20 text-black placeholder-white/30 focus:border-white/40 focus:outline-none focus:bg-white/10 transition-all font-light"
                   required
                 />
               </div>
@@ -376,7 +376,7 @@ export default function CommitmentPage() {
               {/* Threshold Percentage Field */}
               <div className="group">
                 <label htmlFor="commitNumber" className="block mb-3 text-xs uppercase tracking-[0.15em] text-white/60 mb-2">
-                  Required Number <span className="text-white/40 normal-case font-light">*</span>
+                  Required number of commitments for your reveal <span className="text-white/40 normal-case font-light">*</span>
                 </label>
                 <input
                   type="text"
@@ -387,8 +387,8 @@ export default function CommitmentPage() {
                     const v = e.target.value;
                     if (/^[0-9]*$/.test(v)) setCommitNumber(v);
                   }}
-                  placeholder="Enter a number (1-100)"
-                  className={`w-full px-4 py-3 bg-white/5 border text-white placeholder-white/30 focus:outline-none focus:bg-white/10 transition-all font-light ${
+                  placeholder="Enter a number of people"
+                  className={`w-full px-4 py-3 bg-white/5 border text-black placeholder-white/30 focus:outline-none focus:bg-white/10 transition-all font-light ${
                     commitNumber.length === 0 || isCommitNumberValid
                       ? 'border-white/20 focus:border-white/40'
                       : 'border-red-500/50 focus:border-red-500'
