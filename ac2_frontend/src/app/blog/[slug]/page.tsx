@@ -4,6 +4,64 @@ import { notFound, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { getBlogPostBySlug } from '../data';
+// @ts-ignore - react-katex doesn't have types
+import { InlineMath, BlockMath } from 'react-katex';
+import 'katex/dist/katex.min.css';
+
+// Component to render blog content with LaTeX support
+function BlogContent({ content }: { content: string }) {
+
+  // Simple approach: render HTML and then process LaTeX
+  // We'll use a hybrid approach - render HTML and replace LaTeX
+  const processedContent = content
+    .replace(/\$\$([^$]+)\$\$/g, (match, formula) => {
+      return `__BLOCK_MATH__${formula}__END_BLOCK__`;
+    })
+    .replace(/\$([^$]+)\$/g, (match, formula) => {
+      return `__INLINE_MATH__${formula}__END_INLINE__`;
+    });
+
+  const parts = processedContent.split(/(__BLOCK_MATH__|__INLINE_MATH__|__END_BLOCK__|__END_INLINE__)/);
+  const elements: React.ReactElement[] = [];
+  let i = 0;
+  let currentBlock: string | null = null;
+  let currentInline: string | null = null;
+  let currentHTML = '';
+
+  parts.forEach((part) => {
+    if (part === '__BLOCK_MATH__') {
+      if (currentHTML) {
+        elements.push(<span key={i++} dangerouslySetInnerHTML={{ __html: currentHTML }} />);
+        currentHTML = '';
+      }
+      currentBlock = '';
+    } else if (part === '__END_BLOCK__' && currentBlock !== null) {
+      elements.push(<BlockMath key={i++} math={currentBlock} />);
+      currentBlock = null;
+    } else if (part === '__INLINE_MATH__') {
+      if (currentHTML) {
+        elements.push(<span key={i++} dangerouslySetInnerHTML={{ __html: currentHTML }} />);
+        currentHTML = '';
+      }
+      currentInline = '';
+    } else if (part === '__END_INLINE__' && currentInline !== null) {
+      elements.push(<InlineMath key={i++} math={currentInline} />);
+      currentInline = null;
+    } else if (currentBlock !== null) {
+      currentBlock += part;
+    } else if (currentInline !== null) {
+      currentInline += part;
+    } else {
+      currentHTML += part;
+    }
+  });
+
+  if (currentHTML) {
+    elements.push(<span key={i} dangerouslySetInnerHTML={{ __html: currentHTML }} />);
+  }
+
+  return <div className="blog-content text-white/80 leading-relaxed">{elements}</div>;
+}
 
 export default function BlogPostPage() {
   const params = useParams();
@@ -61,10 +119,7 @@ export default function BlogPostPage() {
 
           {/* Article Content */}
           <article className="border border-white/20 bg-white/5 p-6 sm:p-8 lg:p-12 backdrop-blur-sm">
-            <div 
-              className="blog-content text-white/80 leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: post.content }}
-            />
+            <BlogContent content={post.content} />
           </article>
         </div>
       </main>

@@ -1,10 +1,10 @@
 import { Suspense } from "react";
-import CommitmentPage from "@/components/CommitmentPage";
+import CommitmentPageContent from "@/components/CommitmentPage";
 
-export default function CommitPage() {
+export default function CommitmentPage() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <CommitmentPage />
+      <CommitmentPageContent />
     </Suspense>
   );
 }

@@ -172,7 +172,7 @@ export default function AC2Homepage() {
                 <div className="absolute bottom-0 left-0 w-[45%] border border-white/30 bg-[#0a0a0a]/95 p-8 backdrop-blur-md">
                   <div className="mb-3 text-xs uppercase tracking-[0.1em] text-white/50">Our Solution</div>
                   <div className="text-base leading-relaxed text-white/90">
-                    Mathematical guarantees that you&apos;ll only be revealed when your threshold is met
+                    Mathematical guarantees that you'll only be revealed when your threshold is met
                   </div>
                 </div>
               </div>
@@ -277,35 +277,43 @@ export default function AC2Homepage() {
 
           {/* Mathematical Explanation */}
           <div className="border border-white/20 bg-white/5 p-6 sm:p-8 lg:p-12 backdrop-blur-sm">
-            <h3 className="mb-6 sm:mb-8 text-xl sm:text-2xl font-light tracking-wide text-white">
-              The Mathematics of Revelation
+            <h3 className="mb-4 sm:mb-6 text-xl sm:text-2xl font-light tracking-wide text-white">
+              Cryptographic Guarantees
             </h3>
-            <div className="grid md:grid-cols-2 gap-6 sm:gap-8 text-white/80">
-              <div className="border-l-2 border-white/30 pl-4 sm:pl-6">
-                <h4 className="font-light text-base sm:text-lg text-white mb-2 sm:mb-3">Individual Thresholds</h4>
-                <p className="mb-3 sm:mb-4 text-xs sm:text-sm leading-relaxed">
-                  Each person <span className="font-mono bg-white/10 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs sm:text-sm">i</span> sets their own threshold <span className="font-mono bg-white/10 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs sm:text-sm">k_i</span> — the minimum number of total commitments needed before they&apos;re willing to be revealed.
-                </p>
-                <p className="text-xs text-white/50">
-                  Example: Alice sets k=100, Bob sets k=1000, Carol sets k=500
+            <p className="mb-6 sm:mb-8 text-sm sm:text-base leading-relaxed text-white/70 max-w-3xl">
+              Our encryption scheme ensures that commitments remain anonymous until thresholds are met, while providing mathematical proof that each commitment is genuine and cannot be revoked.
+            </p>
+            
+            {/* Feature Blocks */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+              <div className="border border-white/20 bg-white/5 p-4 sm:p-6">
+                <h4 className="font-light text-sm sm:text-base text-white mb-2">Feature 1</h4>
+                <p className="text-xs sm:text-sm text-white/70 leading-relaxed">
+                  [Feature description placeholder]
                 </p>
               </div>
-              <div className="border-l-2 border-white/30 pl-4 sm:pl-6">
-                <h4 className="font-light text-base sm:text-lg text-white mb-2 sm:mb-3">Cascading Revelation</h4>
-                <p className="mb-3 sm:mb-4 text-xs sm:text-sm leading-relaxed">
-                  When the total number of commitments reaches <span className="font-mono bg-white/10 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs sm:text-sm">n</span>, all users with <span className="font-mono bg-white/10 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs sm:text-sm">k_i ≤ n</span> are revealed simultaneously in a wave.
+              <div className="border border-white/20 bg-white/5 p-4 sm:p-6">
+                <h4 className="font-light text-sm sm:text-base text-white mb-2">Feature 2</h4>
+                <p className="text-xs sm:text-sm text-white/70 leading-relaxed">
+                  [Feature description placeholder]
                 </p>
-                <p className="text-xs text-white/50">
-                  At 100 commitments: Alice revealed. At 500: Carol revealed. At 1000: Bob revealed.
+              </div>
+              <div className="border border-white/20 bg-white/5 p-4 sm:p-6">
+                <h4 className="font-light text-sm sm:text-base text-white mb-2">Feature 3</h4>
+                <p className="text-xs sm:text-sm text-white/70 leading-relaxed">
+                  [Feature description placeholder]
                 </p>
               </div>
             </div>
-            <div className="mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-white/10">
-              <div className="bg-white/5 rounded-xl p-4 sm:p-6">
-                <p className="text-center text-white/80 leading-relaxed text-xs sm:text-sm">
-                  <strong className="text-white font-light">Key insight:</strong> You never reveal yourself unless you know at least <span className="font-mono bg-white/10 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs sm:text-sm">k-1</span> other people have also committed. This transforms collective action from a leap of faith into a calculated decision.
-                </p>
-              </div>
+
+            <div className="pt-4 sm:pt-6 border-t border-white/10">
+              <Link 
+                href="/blog/mathematical-details"
+                className="inline-flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 border border-white/20 bg-white/5 text-white font-light text-xs uppercase tracking-[0.15em] transition hover:border-white/40 hover:bg-white/10 no-underline"
+              >
+                Find More Mathematical Details
+                <span>→</span>
+              </Link>
             </div>
           </div>
         </div>
@@ -371,6 +379,30 @@ export default function AC2Homepage() {
                   </h3>
                   <p className="text-sm leading-relaxed text-white/70">
                     Join an existing objective. Set your threshold and commit anonymously until the threshold is met.
+                  </p>
+                </div>
+              </div>
+            </Link>
+
+            <Link 
+              href="/objective"
+              className="group relative overflow-hidden rounded-xl border border-white/20 bg-white/5 p-8 md:p-10 transition-all hover:border-white/40 no-underline"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+              <div className="relative z-10 flex flex-col h-full">
+                <div className="flex-grow mb-6">
+                  <div className="h-12 w-12 md:h-16 md:w-16 flex items-center justify-center">
+                    <List className="w-8 h-8 md:w-10 md:h-10 text-white/60 group-hover:text-white transition-colors" />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-4">
+                  <h3 className="text-[20px] md:text-[24px] font-light tracking-wide text-white group-hover:translate-x-1 transition-transform">
+                    Browse Objectives
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity ml-2">→</span>
+                  </h3>
+                  <p className="text-sm leading-relaxed text-white/70">
+                    Explore active coordination efforts. Find causes that matter to you and see what's gaining momentum.
                   </p>
                 </div>
               </div>
