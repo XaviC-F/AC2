@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Annotated, List, Optional
 
 from bson import ObjectId
+from decouple import config
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
@@ -27,7 +28,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-client = MongoClient("mongodb://localhost:27017/")
+client = MongoClient(config("DATABASE_URI"))
 db = client["objectives_db"]
 objectives_col = db["objectives"]
 
@@ -111,10 +112,10 @@ def commit(objective_id: str, c: Commitment):
     invited_names = objective.get("invited_people", [])
     if c.name not in invited_names:
         return {"message": "Not invited. Ignored"}
-    
+
     elif c.name in objective.get("commitments", []):
         return {"message": "Already committed"}
-    
+
     else:
         objectives_col.update_one(
             {"_id": ObjectId(objective_id)},
