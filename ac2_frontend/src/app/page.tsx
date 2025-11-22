@@ -172,7 +172,7 @@ export default function AC2Homepage() {
                 <div className="absolute bottom-0 left-0 w-[45%] border border-white/30 bg-[#0a0a0a]/95 p-8 backdrop-blur-md">
                   <div className="mb-3 text-xs uppercase tracking-[0.1em] text-white/50">Our Solution</div>
                   <div className="text-base leading-relaxed text-white/90">
-                    Mathematical guarantees that you'll only be revealed when your threshold is met
+                    Mathematical guarantees that you&apos;ll only be revealed when your threshold is met
                   </div>
                 </div>
               </div>
@@ -284,7 +284,7 @@ export default function AC2Homepage() {
               <div className="border-l-2 border-white/30 pl-4 sm:pl-6">
                 <h4 className="font-light text-base sm:text-lg text-white mb-2 sm:mb-3">Individual Thresholds</h4>
                 <p className="mb-3 sm:mb-4 text-xs sm:text-sm leading-relaxed">
-                  Each person <span className="font-mono bg-white/10 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs sm:text-sm">i</span> sets their own threshold <span className="font-mono bg-white/10 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs sm:text-sm">k_i</span> — the minimum number of total commitments needed before they're willing to be revealed.
+                  Each person <span className="font-mono bg-white/10 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs sm:text-sm">i</span> sets their own threshold <span className="font-mono bg-white/10 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs sm:text-sm">k_i</span> — the minimum number of total commitments needed before they&apos;re willing to be revealed.
                 </p>
                 <p className="text-xs text-white/50">
                   Example: Alice sets k=100, Bob sets k=1000, Carol sets k=500
