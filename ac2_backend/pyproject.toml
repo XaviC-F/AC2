@@ -8,5 +8,4 @@ dependencies = [
     "bson>=0.5.10",
     "fastapi>=0.121.3",
     "pymongo>=4.15.4",
-    "uvicorn[standard]>=0.30.0",
 ]

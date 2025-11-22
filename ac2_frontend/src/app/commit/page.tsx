@@ -1,28 +1,15 @@
 import { useState } from 'react';
 import { Lock, Target, CheckCircle, XCircle, Upload, X } from 'lucide-react';
 
-interface Objective {
-  id: string;
-  title: string;
-  description: string;
-  threshold: number;
-  thresholdType: string;
-  totalEligible: number;
-  currentCommitments: number;
-  deadline: string;
-  createdBy: string;
-  category: string;
-}
-
 export default function CommitmentPage() {
-  const [selectedChoice, setSelectedChoice] = useState<'commit' | 'decline' | null>(null);
+  const [selectedChoice, setSelectedChoice] = useState(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [name, setName] = useState('');
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
 
   // Mock objective data - in real app, this would come from props/API
-  const objective: Objective = {
+  const objective = {
     id: "obj_123",
     title: "Unionize Our Workplace",
     description: "Let's organize a union to collectively bargain for better working conditions, fair wages, and job security. This is a confidential commitment - your response will remain anonymous.",
@@ -35,19 +22,16 @@ export default function CommitmentPage() {
     category: "Labor Rights"
   };
 
-  const handleCommitment = async (choice: 'commit' | 'decline') => {
+  const handleCommitment = async (choice) => {
     setSelectedChoice(choice);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      const fileArray = Array.from(files);
-      setUploadedFiles([...uploadedFiles, ...fileArray]);
-    }
+  const handleFileUpload = (e) => {
+    const files = Array.from(e.target.files);
+    setUploadedFiles([...uploadedFiles, ...files]);
   };
 
-  const removeFile = (index: number) => {
+  const removeFile = (index) => {
     setUploadedFiles(uploadedFiles.filter((_, i) => i !== index));
   };
 
@@ -184,7 +168,7 @@ export default function CommitmentPage() {
                 type="text"
                 id="name"
                 value={name}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+                onChange={(e) => setName(e.target.value)}
                 placeholder="Enter your full name"
                 className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
                 required

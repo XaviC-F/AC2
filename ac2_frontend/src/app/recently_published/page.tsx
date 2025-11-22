@@ -1,13 +1,12 @@
 'use client'
 
-import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation'
 import { objectives } from '../objective/data';
 import ObjectiveList from '@/components/ObjectiveList';
 
 const PAGE_SIZE = 5;
 
-function RecentlyPublishedContent() {
+export default function RecentlyPublishedPage() {
   const searchParams = useSearchParams()
 
   let page = 1;
@@ -26,12 +25,4 @@ function RecentlyPublishedContent() {
   const hasPrev = page > 1;
   const hasNext = end < objectives.length;
   return ObjectiveList('Recently published objectives', pageItems, '/objective', page, hasPrev, hasNext);
-}
-
-export default function RecentlyPublishedPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-6 flex items-center justify-center">Loading...</div>}>
-      <RecentlyPublishedContent />
-    </Suspense>
-  );
 }
