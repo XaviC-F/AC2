@@ -1,6 +1,7 @@
 from typing import Annotated, List, Tuple, Optional
 from pymongo import MongoClient
 from bson import ObjectId
+from decouple import config
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder
@@ -320,6 +321,7 @@ def get_most_recently_published(limit: int = 10):
                 "title": o.get("title"),
                 "description": o.get("description"),
                 "resolution_date": o.get("resolution_date"),
+                "resolutionDate": o.get("resolution_date"),
                 "committed_people": o.get("committed_people"),
                 "resolution_strategy": o.get("resolution_strategy", "ASAP"),
             },
