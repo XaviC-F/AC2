@@ -1,16 +1,15 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.interpolate import UnivariateSpline
 from collections import defaultdict
 from enum import Enum, auto
 import random
 
 
-class ResolutionStrategy(Enum):
-    OPTIMISTIC = auto()
-    PESSIMISTIC = auto()
-    RANDOM = auto()
-    CUSTOM = auto()
+class ResolutionStrategy(str, Enum):
+    OPTIMISTIC = "optimistic"
+    PESSIMISTIC = "pessimistic"
+    RANDOM = "random"
+    CUSTOM = "custom"
 
 
 class ThresholdModel:

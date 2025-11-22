@@ -1,6 +1,7 @@
 from typing import List
 from pymongo import MongoClient
 from bson import ObjectId
+from fastapi.middleware.cors import CORSMiddleware
 
 import threading
 import time
@@ -13,6 +14,7 @@ from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
 
 app = FastAPI()
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 client = MongoClient("mongodb://localhost:27017/")
 db = client["objectives_db"]
@@ -24,7 +26,8 @@ def create_objective(
     description: str,
     invited_names: List[str],
     resolution_date: datetime,
-    published: bool = False,
+    resolution_strategy: ResolutionStrategy,
+    minimum_percentage: int, # ignored
 ):
 
     if isinstance(resolution_date, str):
@@ -36,15 +39,15 @@ def create_objective(
         "resolution_date": resolution_date,
         # invited list lives inside the objective
         "invited_people": invited_names,  # list of strings
-        # empty list at start
+        "resolution_strategy": resolution_strategy,
         "commitments": [],
-        "published": published,
+        "published": False,
         "modified_at": datetime.utcnow().isoformat(),
     }
 
     result = objectives_col.insert_one(objective_doc)
 
-    return str(result.inserted_id)
+    return {"objective_id": str(result.inserted_id)}
 
 
 def is_past_resolution_date(objective):

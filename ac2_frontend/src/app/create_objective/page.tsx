@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { API_URL } from '@/config/config';
 
 export default function CreateObjectivePage() {
   const router = useRouter();
@@ -25,16 +26,22 @@ export default function CreateObjectivePage() {
         .filter(Boolean);
     }
     const data = {
-      title,
-      description,
-      committers: users,
-      resolutionDate,
-      strategy: strategy || null,
-      optInPercent: optInPercent ? Number(optInPercent) : null,
+      title: title,
+      description: description,
+      invited_names: users,
+      resolution_date: resolutionDate,
+      resolution_strategy: strategy || 'asap',
+      minimum_percentage: optInPercent ? Number(optInPercent) : null,
     };
     console.log('Creating objective:', data);
-    // TODO: call API or server action to persist
-    router.push('/list');
+    const response = await fetch(`${API_URL}objective`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    }).then(r => r.json()).catch(err => {throw new Error(`Request failed: ${err}`); });
+    router.push(`/objective/${response.objective_id}`)
   }
 
   return (

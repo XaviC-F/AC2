@@ -1,3 +1,5 @@
+'use client'
+
 import { useState } from 'react';
 import { Lock, Target, CheckCircle, XCircle, Upload, X } from 'lucide-react';
 
