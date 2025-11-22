@@ -30,7 +30,8 @@ def create_objective(title: str, description: str, invited_names: List[str], res
         "invited_people": invited_names,   # list of strings
         # empty list at start
         "commitments": [],
-        "published": False
+        "published": False,
+        "modified_at": datetime.utcnow().isoformat()
     }
 
     result = objectives_col.insert_one(objective_doc)
@@ -51,9 +52,9 @@ def is_past_resolution_date(objective):
     today = datetime.utcnow().date()
     return today > res_date.date() 
 
-def check_equilibrium(objective):
+def compute_current_equilibrium(objective):
     threshold_model = ThresholdModel(list(map(lambda o: (o.get("commitments").get("name"), o.get("commitments").get("number")), objectives)), ResolutionStrategy.OPTIMISTIC)
-    
+    return threshold_model.resolve()
 
 @app.patch("/commit")
 def commit(objective_id, name, number):
@@ -82,18 +83,19 @@ def commit(objective_id, name, number):
 
         objective = objectives_col.find_one({"_id": ObjectId(objective_id)})
 
-        if check_equilibrium(objective) == True:
+        current_equilibrium = compute_current_equilibrium(objective)
+        if current_equilibrium:
             objectives_col.update_one(
                 {"_id": ObjectId(objective["_id"])},
-                {"$set": {"published": True}}
+                {"$set": {"published": True, "commited_people": current_equilibrium, "modified_at": datetime.utcnow().isoformat()}}
             )
 
         return "Commitment stored."
     
-app.get("/objective/{objective_id}")    
-def serve_view (objective_id):
+@app.get("/objective/{objective_id}")    
+def serve_view(objective_id):
     objective = objectives_col.find_one({"_id": ObjectId(objective_id)})
-    if objective.get("published") == False:
+    if not objective.get("published"):
         return {"title": objective.get("title"),
                 "description": objective.get("description"),
                 "resolution_date": objective.get("resolution_date")
@@ -102,6 +104,13 @@ def serve_view (objective_id):
         return {"title": objective.get("title"),
                 "description": objective.get("description"),
                 "resolution_date": objective.get("resolution_date"),
-                "commitments": objective.get("commitments")
+                "commited_people": objective.get("commited_people")
                 }
 
+@app.get("/recently_published")    
+def get_most_recently_published(limit: int = 10):
+    objectives = objectives_col.find({"published": True}).sort("modified_at").limit(limit)
+    return list(map(lambda o: {"title": objective.get("title"),
+                "description": objective.get("description"),
+                "resolution_date": objective.get("resolution_date"),
+                "commited_people": objective.get("commited_people")}, objectives))
