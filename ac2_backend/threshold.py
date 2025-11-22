@@ -10,6 +10,7 @@ class ResolutionStrategy(str, Enum):
     PESSIMISTIC = "pessimistic"
     RANDOM = "random"
     CUSTOM = "custom"
+    ASAP = "asap"
 
 
 class ThresholdModel:

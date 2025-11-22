@@ -1,16 +1,19 @@
-from typing import List
+from typing import List, Optional
 from pymongo import MongoClient
 from bson import ObjectId
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
+import logging
 import threading
 import time
 from datetime import datetime
 
 from ac2_backend.threshold import ResolutionStrategy, ThresholdModel
 
-from fastapi import FastAPI
-from fastapi import HTTPException
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.encoders import jsonable_encoder
 
 app = FastAPI()
@@ -20,26 +23,29 @@ client = MongoClient("mongodb://localhost:27017/")
 db = client["objectives_db"]
 objectives_col = db["objectives"]
 
+class Objective(BaseModel):
+    title: str
+    description: str
+    invited_names: List[str]
+    resolution_date: datetime
+    resolution_strategy: Optional[ResolutionStrategy] = ResolutionStrategy.ASAP
+    minimum_percentage: Optional[int]  # ignored
+
+
 @app.post("/objective")
 def create_objective(
-    title: str,
-    description: str,
-    invited_names: List[str],
-    resolution_date: datetime,
-    resolution_strategy: ResolutionStrategy,
-    minimum_percentage: int, # ignored
+    o: Objective
 ):
-
     if isinstance(resolution_date, str):
-        resolution_date = datetime.fromisoformat(resolution_date)
+        resolution_date = datetime.fromisoformat(o.resolution_date)
 
     objective_doc = {
-        "title": title,
-        "description": description,
-        "resolution_date": resolution_date,
+        "title": o.title,
+        "description": o.description,
+        "resolution_date": o.resolution_date,
         # invited list lives inside the objective
-        "invited_people": invited_names,  # list of strings
-        "resolution_strategy": resolution_strategy,
+        "invited_people": o.invited_names,  # list of strings
+        "resolution_strategy": o.resolution_strategy,
         "commitments": [],
         "published": False,
         "modified_at": datetime.utcnow().isoformat(),
@@ -169,3 +175,12 @@ def debug_objective(objective_id: str):
     # Convert ObjectId + datetime to JSON-friendly types
     objective["_id"] = str(objective["_id"])
     return jsonable_encoder(objective)
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    exc_str = f'{exc}'.replace('\n', ' ').replace('   ', ' ')
+    logging.error(f"{request}: {exc_str}")
+    return JSONResponse(
+        status_code=422,
+        content=jsonable_encoder({"detail": exc.errors(), "body": exc.body}),
+    )
