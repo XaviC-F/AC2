@@ -6,17 +6,23 @@ import { Lock, Target, CheckCircle, XCircle, Upload, X } from 'lucide-react';
 import { API_URL } from '@/config/config';
 import { Objective } from '../objective/data';
 
+interface ObjectiveWithDetails extends Objective {
+  category?: string;
+  threshold?: number;
+  deadline?: string;
+}
+
 export default function CommitmentPage() {
   const searchParams = useSearchParams();
 
-  const [selectedChoice, setSelectedChoice] = useState(null);
+  const [selectedChoice, setSelectedChoice] = useState<'commit' | 'decline' | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [name, setName] = useState('');
   const [commitNumber, setCommitNumber] = useState('');
-  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
-  const [objective, setObjective] = useState<Objective | null>(null);
+  const [objective, setObjective] = useState<ObjectiveWithDetails | null>(null);
   const [isLoadingObjective, setIsLoadingObjective] = useState(true);
   const [objectiveError, setObjectiveError] = useState("");
   const [isPublished, setIsPublished] = useState(false);
@@ -41,10 +47,8 @@ export default function CommitmentPage() {
         setObjective(data);
         setIsPublished(data.published);
 
-      } catch (e: unknown) {
-        let message = "Failed to load objective";
-        if (e instanceof Error) message = e.message
-        if (!cancelled) setObjectiveError(message);
+      } catch (e) {
+        if (!cancelled) setObjectiveError((e instanceof Error ? e.message : String(e)) || "Failed to load objective");
       } finally {
         if (!cancelled) setIsLoadingObjective(false);
       }
@@ -52,21 +56,21 @@ export default function CommitmentPage() {
 
     loadObjective();
     return () => { cancelled = true; };
-  }, [objectiveId]);
+  }, []);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleCommitment = async (choice: any) => {
+  const handleCommitment = async (choice: 'commit' | 'decline') => {
     setSelectedChoice(choice);
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleFileUpload = (e: any) => {
-    const files = Array.from(e.target.files || []);
-    setUploadedFiles([...uploadedFiles, ...files]);
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const fileArray = Array.from(files);
+      setUploadedFiles([...uploadedFiles, ...fileArray]);
+    }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const removeFile = (index: any) => {
+  const removeFile = (index: number) => {
     setUploadedFiles(uploadedFiles.filter((_, i) => i !== index));
   };
 
@@ -111,7 +115,7 @@ export default function CommitmentPage() {
         setIsSubmitted(true);
       }
     } catch (e) {
-      alert(e.message || "Something went wrong");
+      alert((e instanceof Error ? e.message : String(e)) || "Something went wrong");
     } finally {
       setIsSubmitting(false);
     }
@@ -223,6 +227,7 @@ export default function CommitmentPage() {
                 <Target className="w-6 h-6 text-blue-600" />
               </div>
               <div className="flex-1">
+                <div className="text-xs text-slate-500 uppercase font-semibold mb-1">{objective?.category}</div>
                 <h2 className="text-2xl font-bold text-slate-900 mb-3">{objective?.title}</h2>
                 <p className="text-slate-700 leading-relaxed">{objective?.description}</p>
               </div>
@@ -233,11 +238,11 @@ export default function CommitmentPage() {
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <div className="text-sm text-slate-600 mb-1">Threshold Required</div>
-                  <div className="text-2xl font-bold text-slate-900">{objective.threshold}%</div>
+                  <div className="text-2xl font-bold text-slate-900">{objective?.threshold}%</div>
                 </div>
                 <div>
                   <div className="text-sm text-slate-600 mb-1">Deadline</div>
-                  <div className="text-lg font-bold text-slate-900">{new Date(objective.deadline).toLocaleDateString()}</div>
+                  <div className="text-lg font-bold text-slate-900">{objective?.deadline ? new Date(objective.deadline).toLocaleDateString() : ''}</div>
                 </div>
               </div>
             </div>
