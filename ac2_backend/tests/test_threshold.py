@@ -1,7 +1,7 @@
 import unittest
 import secrets
-from commit_classes import CommitEncrypter, NameHolder, CommitDecrypter
-from threshold_encrypted import ThresholdEncryptedModel, ResolutionStrategy
+from ac2_backend.core.commit_classes import CommitEncrypter, NameHolder, CommitDecrypter
+from ac2_backend.core.threshold_encrypted import ThresholdEncryptedModel, ResolutionStrategy
 
 class TestThresholdSystem(unittest.TestCase):
     def test_commit_encrypter_basics(self):

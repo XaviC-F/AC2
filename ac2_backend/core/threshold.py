@@ -22,7 +22,9 @@ class ThresholdModel:
     ):
         """
         Initialize with a list of (name, threshold) tuples.
-        Thresholds should be floats in [0, 1] or float('inf').
+        Thresholds can be fractions [0, 1] or absolute counts [0, N].
+        If any finite threshold > 1.0, the model assumes absolute counts (N domain).
+        Otherwise, it assumes fractions (0-1 domain).
         resolution_strategy: ResolutionStrategy enum member.
         min_percentage: float in [0, 1], the minimum active percentage.
         """
@@ -79,29 +81,35 @@ class ThresholdModel:
     def _get_curve_data(self):
         """
         Generate points (x, y) for the social behavior curve.
-        x: percentage of others doing it
-        y: percentage of people willing to do it
+        Auto-detects if thresholds are fractions or absolute counts.
         """
         if not self.preferences:
-            return np.array([0.0, 1.0]), np.array([0.0, 0.0])
+            return np.array([0.0, 1.0]), np.array([0.0, 0.0]), False, 1.0
 
         n = len(self.preferences)
         thresholds = [p[1] for p in self.preferences]
+        
+        # Detect if absolute or fractional
+        finite_thresholds_all = [t for t in thresholds if t != float('inf')]
+        max_t = max(finite_thresholds_all) if finite_thresholds_all else 0
+        
+        # If any threshold > 1.0, treat as absolute counts
+        is_absolute = max_t > 1.0
+        
+        # Determine domain maximum
+        # If absolute, domain goes up to N (total population/activity)
+        # If fractional, domain goes up to 1.0
+        domain_max = float(n) if is_absolute else 1.0
 
-        # Filter out infinities for the curve generation (they are effectively > 1)
-        finite_thresholds = [t for t in thresholds if t <= 1.0]
-
-        # Unique thresholds and their cumulative counts
+        # Filter thresholds relevant to the domain
+        # Thresholds > domain_max are effectively unreachable/infinite
+        finite_thresholds = [t for t in thresholds if t <= domain_max]
         unique_thresholds = sorted(list(set(finite_thresholds)))
 
         x_points = []
         y_points = []
 
-        # Always start at 0.
-        # If there are thresholds at exactly 0, y starts at count(0)/n.
-        # If not, y starts at 0.
-
-        # If min threshold > 0, we need a point at (0, 0)
+        # Start at 0
         if not unique_thresholds or unique_thresholds[0] > 0:
             x_points.append(0.0)
             y_points.append(0.0)
@@ -110,24 +118,28 @@ class ThresholdModel:
         for t in unique_thresholds:
             count = finite_thresholds.count(t)
             cum_count += count
-            # Point: at percentage t, fraction cum_count/n are willing
+            
+            # Y value:
+            # If absolute mode, y is count [0, N]
+            # If fractional mode, y is fraction [0, 1]
+            y_val = cum_count if is_absolute else (cum_count / n)
+            
             x_points.append(t)
-            y_points.append(cum_count / n)
+            y_points.append(y_val)
 
-        # Ensure we cover up to 1.0
-        if not x_points or x_points[-1] < 1.0:
-            x_points.append(1.0)
-            # The y value stays constant after the last finite threshold
+        # Ensure we cover up to domain_max
+        if not x_points or x_points[-1] < domain_max:
+            x_points.append(domain_max)
             last_y = y_points[-1] if y_points else 0.0
             y_points.append(last_y)
 
-        return np.array(x_points), np.array(y_points)
+        return np.array(x_points), np.array(y_points), is_absolute, domain_max
 
     def _get_spline(self, smoothing=None):
-        x, y = self._get_curve_data()
+        x, y, is_absolute, domain_max = self._get_curve_data()
 
         if len(x) < 2:
-            return None, x, y, 1
+            return None, x, y, 1, is_absolute, domain_max
 
         # Deduplicate x
         if len(x) != len(set(x)):
@@ -142,15 +154,13 @@ class ThresholdModel:
             x, y = np.array(unique_x), np.array(unique_y)
 
         k = 3 if len(x) > 3 else 1
-        return UnivariateSpline(x, y, k=k, s=smoothing), x, y, k
+        return UnivariateSpline(x, y, k=k, s=smoothing), x, y, k, is_absolute, domain_max
 
     def find_equilibria(self, smoothing=None):
         """
         Find stable and unstable equilibria.
-        Returns a dict with 'stable' and 'unstable' keys containing lists of
-        (equilibrium_percentage, [list_of_names]).
         """
-        spline, x, y, k = self._get_spline(smoothing)
+        spline, x, y, k, is_absolute, domain_max = self._get_spline(smoothing)
 
         if spline is None:
             return {"stable": [], "unstable": []}
@@ -160,23 +170,15 @@ class ThresholdModel:
         pp = PPoly.from_spline(diff_spline._eval_args)
         roots = pp.roots()
 
-        # Filter roots to be in [0, 1]
-        valid_roots = [r for r in roots if 0 <= r <= 1.0]
-
-        # Check endpoints explicitly if they are close to equilibrium
-        # (Spline roots might occasionally miss exact 0 or 1 if curvature is high)
-        # But typically roots() finds them.
+        # Filter roots to be in valid domain
+        valid_roots = [r for r in roots if 0 <= r <= domain_max]
 
         equilibria = {"stable": [], "unstable": []}
 
         for r in valid_roots:
-            # Determine stability: slope of CDF at r.
-            # Stable if slope < 1 (crossing from above to below).
-            # Unstable if slope > 1.
             slope = spline.derivatives(r)[1]
-
-            # Get the group of people
-            # People with threshold <= r
+            
+            # Group logic depends on threshold comparison
             group = [p[0] for p in self.preferences if p[1] <= r + 1e-9]
 
             entry = (float(r), group)
@@ -186,7 +188,6 @@ class ThresholdModel:
             else:
                 equilibria["unstable"].append(entry)
 
-        # Sort by percentage
         equilibria["stable"].sort(key=lambda x: x[0])
         equilibria["unstable"].sort(key=lambda x: x[0])
 
@@ -195,104 +196,91 @@ class ThresholdModel:
     def has_equilibrium_above_min(self, smoothing=None):
         """
         Check if there is any equilibrium strictly above min_percentage.
+        Handles adaptation of min_percentage to domain.
         """
         eqs = self.find_equilibria(smoothing)
+        
+        # We need access to domain info here, but it's not returned by find_equilibria.
+        # Re-calling get_curve_data is cheap or we can infer.
+        # Easier: get domain max from get_spline
+        _, _, _, _, is_absolute, domain_max = self._get_spline(smoothing)
+        
+        min_val = self.min_percentage
+        if is_absolute:
+            # If in absolute mode, min_percentage is fraction of N
+            min_val = self.min_percentage * domain_max
+            
         for r, _ in eqs["stable"] + eqs["unstable"]:
-            if r > self.min_percentage:
+            if r > min_val:
                 return True
         return False
 
     def resolve(self, custom_seed=None, smoothing=None):
         """
         Resolve the final active set using analytical equilibria.
-        1. Determine start point based on strategy.
-        2. Find the attractor (stable equilibrium) for that start point.
-        Returns the list of active names at that equilibrium.
         """
         if not self.preferences:
             return []
 
-        # Determine start percentage
+        spline, x, y, _, is_absolute, domain_max = self._get_spline(smoothing)
+        if spline is None:
+            return []
+            
+        # Calculate min_val for current domain
+        min_val = self.min_percentage
+        if is_absolute:
+            min_val = self.min_percentage * domain_max
+
+        # Determine start point
         start_p = 0.0
         if self.resolution_strategy == ResolutionStrategy.PESSIMISTIC:
-            start_p = self.min_percentage
+            start_p = min_val
         elif self.resolution_strategy == ResolutionStrategy.OPTIMISTIC:
-            start_p = 1.0
+            start_p = domain_max
         elif self.resolution_strategy == ResolutionStrategy.RANDOM:
-            start_p = random.uniform(self.min_percentage, 1.0)
+            start_p = random.uniform(min_val, domain_max)
         elif self.resolution_strategy == ResolutionStrategy.CUSTOM:
             if custom_seed is None:
                 raise ValueError("custom_seed must be provided for CUSTOM strategy")
-            start_p = max(self.min_percentage, float(custom_seed))
+            start_p = float(custom_seed)
+            if start_p < min_val:
+                start_p = min_val
+            # Note: custom_seed is assumed to be in correct units (fraction or count)
 
-        # Get spline to evaluate flow
-        spline, x, y, _ = self._get_spline(smoothing)
-        if spline is None:
-            # Trivial case: everyone or no one based on simple logic
-            # Fallback to simple check
-            return []
-
-        # Get all roots (both stable and unstable)
         eqs = self.find_equilibria(smoothing)
         all_eqs = sorted(eqs["stable"] + eqs["unstable"], key=lambda x: x[0])
 
-        # If no equilibria found (rare, usually 0 or 1 are equilibria),
-        # check endpoints manually or fallback to simulation logic?
-        # But with (0,0) and (1,1) bounds, there's usually an intersection.
         if not all_eqs:
-            # This implies the curve is entirely above or below y=x
-            # If curve > x always -> goes to 1.0
-            # If curve < x always -> goes to 0.0
-            val_at_05 = spline(0.5)
-            final_p = 1.0 if val_at_05 > 0.5 else 0.0
+            # Fallback: check midpoint relative to domain
+            mid = domain_max / 2.0
+            val_at_mid = spline(mid)
+            final_p = domain_max if val_at_mid > mid else 0.0
             group = [p[0] for p in self.preferences if p[1] <= final_p + 1e-9]
             return group
 
-        # Logic:
-        # If spline(start_p) > start_p: flow UP to next root
-        # If spline(start_p) < start_p: flow DOWN to next root
-        # If spline(start_p) == start_p: stay there
-
         current_val = spline(start_p)
-
         final_eq_p = start_p
 
         if abs(current_val - start_p) < 1e-4:
-            # Already at equilibrium
             final_eq_p = start_p
         elif current_val > start_p:
-            # Flow UP: find smallest root >= start_p
-            # Note: We need a stable one? Or just the next crossing?
-            # The dynamic process stops at the first crossing it hits.
-            # If it hits an unstable equilibrium from below, it technically stops there
-            # (though sensitive to noise). But mathematically, f(x)=x stops the flow.
-
-            # Find first root > start_p
+            # Flow UP
             candidates = [r for r, _ in all_eqs if r >= start_p - 1e-4]
             if candidates:
                 final_eq_p = candidates[0]
             else:
-                final_eq_p = 1.0  # Should have been caught by roots, but just in case
+                final_eq_p = domain_max
         else:
-            # Flow DOWN: find largest root <= start_p
+            # Flow DOWN
             candidates = [r for r, _ in all_eqs if r <= start_p + 1e-4]
             if candidates:
                 final_eq_p = candidates[-1]
             else:
                 final_eq_p = 0.0
 
-        # However, we must respect min_percentage as a hard floor?
-        # If the "flow" wants to go below min_percentage, it stops at min_percentage?
-        # Or does min_percentage just define the start?
-        # The user said "min percentage becomes zero... taken from there".
-        # This implies it's a floor.
-        if final_eq_p < self.min_percentage:
-            # If natural equilibrium is below min, we are forced to min_percentage?
-            # Or does min_percentage act as a barrier?
-            # If f(min) < min, we want to flow down, but we are forced at min.
-            # So we stop at min.
-            final_eq_p = self.min_percentage
+        # Apply floor
+        if final_eq_p < min_val:
+            final_eq_p = min_val
 
-        # Return active set at this final percentage
         active_names = [p[0] for p in self.preferences if p[1] <= final_eq_p + 1e-9]
         return active_names

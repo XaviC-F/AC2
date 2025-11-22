@@ -11,7 +11,7 @@ import threading
 import time
 from datetime import datetime
 
-from ac2_backend.threshold import ResolutionStrategy, ThresholdModel
+from ac2_backend.core.threshold import ResolutionStrategy, ThresholdModel
 
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.encoders import jsonable_encoder
@@ -126,7 +126,7 @@ def commit(objective_id: str, c: Commitment):
                 {
                     "$set": {
                         "published": True,
-                        "commited_people": current_equilibrium,
+                        "committed_people": current_equilibrium,
                         "modified_at": datetime.utcnow().isoformat(),
                     }
                 },
@@ -149,7 +149,7 @@ def serve_view (objective_id):
             "title": objective.get("title"),
             "description": objective.get("description"),
             "resolution_date": objective.get("resolution_date"),
-            "commited_people": objective.get("commited_people"),
+            "committed_people": objective.get("committed_people"),
             "published": objective.get("published"),
         }
 
@@ -165,7 +165,7 @@ def get_most_recently_published(limit: int = 10):
                 "title": o.get("title"),
                 "description": o.get("description"),
                 "resolution_date": o.get("resolution_date"),
-                "commited_people": o.get("commited_people"),
+                "committed_people": o.get("committed_people"),
             },
             objectives,
         )

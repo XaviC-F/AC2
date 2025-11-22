@@ -1,5 +1,6 @@
 import hashlib
 import secrets
+import random
 from typing import List, Tuple, Dict, Set, Optional
 from itertools import combinations
 
@@ -20,13 +21,14 @@ class NameHolder:
         return self._hash_name(name) in self.hashes
 
 class CommitEncrypter:
-    def __init__(self, name_holder: NameHolder, group_size: int, min_count: int = 1):
+    def __init__(self, name_holder: NameHolder, group_size: int, min_count: int = 1, seed: str = None):
         """
         Initialize the encryption server state.
         name_holder: The NameHolder instance to verify membership.
         group_size: The size of the authorized set N (upper bound).
         min_count: The minimum number of people required to reveal anything.
                    Rows 0 to min_count-2 will always be noise.
+        seed: Optional seed to deterministically initialize coefficients.
         """
         self.name_holder = name_holder
         self.n = group_size
@@ -35,8 +37,15 @@ class CommitEncrypter:
         # Mersenne Prime 2**127 - 1
         self.MOD = 2**127 - 1
         
+        if seed:
+            # Deterministic initialization
+            self.rng = random.Random(seed)
+        else:
+            # Randomized initialization
+            self.rng = random.Random(secrets.token_bytes(32))
+
         # Generate coefficients a_0 ... a_{n-1}
-        self.coeffs = [secrets.randbelow(self.MOD) for _ in range(self.n)]
+        self.coeffs = [self.rng.randint(0, self.MOD - 1) for _ in range(self.n)]
 
         # Track used x values to ensure uniqueness
         self.used_xs: Set[int] = set()
@@ -72,10 +81,14 @@ class CommitEncrypter:
     def _get_unique_x(self) -> int:
         """Generate a random x that hasn't been used before."""
         while True:
-            x = secrets.randbelow(self.MOD)
-            if x != 0 and x not in self.used_xs:
+            x = self.rng.randint(1, self.MOD - 1) # x cannot be 0
+            if x not in self.used_xs:
                 self.used_xs.add(x)
                 return x
+                
+    def set_used_xs(self, used_xs: List[int]):
+        """Manually set used xs (e.g. when restoring state)"""
+        self.used_xs = set(used_xs)
 
     def commit(self, name: str, threshold: int) -> Tuple[str, List[Tuple[int, int]]]:
         """
@@ -89,7 +102,7 @@ class CommitEncrypter:
             points = []
             for _ in range(self.n):
                 x = self._get_unique_x()
-                y = secrets.randbelow(self.MOD)
+                y = self.rng.randint(0, self.MOD - 1)
                 points.append((x, y))
             return secrets.token_hex(16), points
 
@@ -98,7 +111,7 @@ class CommitEncrypter:
             points = []
             for _ in range(self.n):
                 x = self._get_unique_x()
-                y = secrets.randbelow(self.MOD)
+                y = self.rng.randint(0, self.MOD - 1)
                 points.append((x, y))
             return secrets.token_hex(16), points
             
@@ -119,7 +132,7 @@ class CommitEncrypter:
         for i in range(self.n):
             x = self._get_unique_x()
             if i < noise_limit:
-                y = secrets.randbelow(self.MOD)
+                y = self.rng.randint(0, self.MOD - 1)
             else:
                 y = self._eval_poly(i, x)
             points.append((x, y))
@@ -242,7 +255,7 @@ class CommitDecrypter:
             if needed > len(unknown_users):
                 continue
             
-            MAX_COMBS = 10000
+            MAX_COMBS = 1000000
             comb_count = 0
             
             base_points = []

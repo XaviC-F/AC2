@@ -5,7 +5,7 @@ from enum import Enum, auto
 import random
 import secrets
 import hashlib
-from commit_classes import CommitEncrypter, CommitDecrypter, NameHolder
+from ac2_backend.core.commit_classes import CommitEncrypter, CommitDecrypter, NameHolder
 
 
 class ResolutionStrategy(Enum):
