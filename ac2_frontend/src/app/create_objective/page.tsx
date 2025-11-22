@@ -7,6 +7,8 @@ import { ArrowRight, Upload } from 'lucide-react';
 import { API_URL } from '@/config/config';
 
 export default function CreateObjectivePage() {
+  const TITLE_MAX_LENGTH = 500;
+  const DESCRIPTION_MAX_LENGTH = 1500;
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -16,8 +18,22 @@ export default function CreateObjectivePage() {
   const [optInPercent, setOptInPercent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const isTitleTooLong = title.length > TITLE_MAX_LENGTH;
+  const isDescriptionTooLong = description.length > DESCRIPTION_MAX_LENGTH;
+  const isResolutionDateInvalid = resolutionDate
+    ? new Date(resolutionDate) <= new Date()
+    : false;
+  const hasLengthError = isTitleTooLong || isDescriptionTooLong;
+  const hasErrors = hasLengthError || isResolutionDateInvalid;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (hasErrors) {
+      alert(
+        'Please fix the fields marked in red (shorten text or choose a future resolution date) before submitting.'
+      );
+      return;
+    }
     setIsSubmitting(true);
     
     try {
@@ -111,6 +127,14 @@ export default function CreateObjectivePage() {
                   className="w-full px-4 py-3 bg-white/5 border border-white/20 text-white placeholder-white/30 focus:border-white/40 focus:outline-none focus:bg-white/10 transition-all font-light"
                   placeholder="Enter objective title"
                 />
+                <div className="mt-2 text-xs text-white/60">
+                  <span className={isTitleTooLong ? 'text-red-400' : ''}>
+                    {title.length}/{TITLE_MAX_LENGTH} characters
+                  </span>
+                  {isTitleTooLong && (
+                    <span className="ml-2 text-red-400">Title exceeds the limit.</span>
+                  )}
+                </div>
               </div>
 
               {/* Description */}
@@ -126,6 +150,14 @@ export default function CreateObjectivePage() {
                   className="w-full px-4 py-3 bg-white/5 border border-white/20 text-white placeholder-white/30 focus:border-white/40 focus:outline-none focus:bg-white/10 transition-all font-light resize-none"
                   placeholder="Describe the objective and what collective action is needed"
                 />
+                <div className="mt-2 flex items-center justify-between text-xs text-white/60">
+                  <span className={isDescriptionTooLong ? 'text-red-400' : ''}>
+                    {description.length}/{DESCRIPTION_MAX_LENGTH} characters
+                  </span>
+                  {isDescriptionTooLong && (
+                    <span className="text-red-400">Description exceeds the limit.</span>
+                  )}
+                </div>
               </div>
 
               {/* File Upload */}
@@ -164,6 +196,9 @@ export default function CreateObjectivePage() {
                   onChange={(e) => setResolutionDate(e.target.value)}
                   className="w-full px-4 py-3 bg-white/5 border border-white/20 text-white focus:border-white/40 focus:outline-none focus:bg-white/10 transition-all font-light [color-scheme:dark]"
                 />
+                {isResolutionDateInvalid && (
+                  <p className="mt-2 text-xs text-red-400">Please choose a future date.</p>
+                )}
               </div>
 
               {/* Strategy and Opt-In Percentage Grid */}
@@ -210,7 +245,7 @@ export default function CreateObjectivePage() {
               <div className="pt-4 sm:pt-6 border-t border-white/10">
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || hasErrors}
                   className="group inline-flex items-center justify-center gap-2 px-6 py-3 sm:px-8 sm:py-4 bg-white text-black font-light text-xs sm:text-sm uppercase tracking-[0.15em] transition hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
                 >
                   {isSubmitting ? 'Creating...' : 'Create Objective'}

@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict, Optional, Set, Any
+from typing import Annotated, List, Tuple, Dict, Optional, Set, Any
 from pymongo import MongoClient
 from bson import ObjectId
 from fastapi import FastAPI, HTTPException, Request, Body
@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 import logging
 import secrets
@@ -15,6 +15,9 @@ import random
 
 # Import encrypted logic classes
 from ac2_backend.core.commit_classes import NameHolder, CommitEncrypter, CommitDecrypter
+
+MAX_NAME_LENGTH = 1000
+NameStr = Annotated[str, Field(min_length=1, max_length=MAX_NAME_LENGTH)]
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -43,13 +46,13 @@ objectives_col = db["objectives"]
 class Objective(BaseModel):
     title: str
     description: str
-    invited_names: List[str]
+    invited_names: List[NameStr]
     resolution_date: datetime
     resolution_strategy: Optional[str] = "ASAP"
     minimum_number: Optional[int] = 1
 
 class Commitment(BaseModel):
-    name: str
+    name: NameStr
     Number: int # Treated as threshold in encrypted context
 
 # -----------------------------------------------------------------------------

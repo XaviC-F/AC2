@@ -2,7 +2,7 @@ import logging
 import threading
 import time
 from datetime import datetime
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from bson import ObjectId
 from fastapi import FastAPI, HTTPException, Request
@@ -14,6 +14,9 @@ from pydantic import BaseModel, Field
 from pymongo import MongoClient
 
 from ac2_backend.core.threshold import ResolutionStrategy, ThresholdModel
+
+MAX_NAME_LENGTH = 1000
+NameStr = Annotated[str, Field(min_length=1, max_length=MAX_NAME_LENGTH)]
 
 app = FastAPI()
 app.add_middleware(
@@ -32,7 +35,7 @@ objectives_col = db["objectives"]
 class Objective(BaseModel):
     title: str
     description: str
-    invited_names: List[str]
+    invited_names: List[NameStr]
     resolution_date: datetime
     resolution_strategy: Optional[ResolutionStrategy] = ResolutionStrategy.ASAP
     minimum_percentage: Optional[int]  # ignored
@@ -93,7 +96,7 @@ def compute_current_equilibrium(objective):
 
 
 class Commitment(BaseModel):
-    name: str
+    name: NameStr
     number: int = Field(..., ge=0)
 
 
@@ -108,7 +111,10 @@ def commit(objective_id: str, c: Commitment):
     invited_names = objective.get("invited_people", [])
     if c.name not in invited_names:
         return {"message": "Not invited. Ignored"}
-
+    
+    elif c.name in objective.get("commitments", []):
+        return {"message": "Already committed"}
+    
     else:
         objectives_col.update_one(
             {"_id": ObjectId(objective_id)},

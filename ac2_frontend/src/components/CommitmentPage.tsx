@@ -7,6 +7,8 @@ import { Lock, Target, CheckCircle, XCircle, Upload, X, ArrowRight } from 'lucid
 import { API_URL } from '@/config/config';
 import { Objective } from '../app/objective/data';
 
+const MAX_NAME_LENGTH = 1000;
+
 interface ObjectiveWithDetails extends Objective {
   category?: string;
   threshold?: number;
@@ -30,7 +32,7 @@ export default function CommitmentPage() {
   const [isPublished, setIsPublished] = useState(false);
 
   const objectiveId = searchParams.get('objective_id');
-  if (objectiveId) {
+  if (objectiveId && objectiveId != queryParamObjectiveId) {
     setQueryParamObjectiveId(objectiveId);
   }
 
@@ -83,13 +85,16 @@ export default function CommitmentPage() {
     setUploadedFiles(uploadedFiles.filter((_, i) => i !== index));
   };
 
-  const isCommitNumberValid = /^\d+$/.test(commitNumber.trim()) && Number(commitNumber) >= 1;
+  const trimmedName = name.trim();
+  const isNameTooLong = trimmedName.length > MAX_NAME_LENGTH;
+  const isNameValid = trimmedName.length > 0 && !isNameTooLong;
+  const isCommitNumberValid = /^\d+$/.test(commitNumber.trim()) && Number(commitNumber) >= 2;
 
   const handleSubmit = async () => {
     if (
       isPublished ||
       !selectedChoice ||
-      !name.trim() ||
+      !isNameValid ||
       !commitNumber.trim() ||
       !isCommitNumberValid
     ) return;
@@ -98,7 +103,7 @@ export default function CommitmentPage() {
       setIsSubmitting(true);
 
       const data = {
-        name: name.trim(),
+        name: trimmedName,
         number: commitNumber.trim(),
       };
 
@@ -114,12 +119,6 @@ export default function CommitmentPage() {
         if (!res.ok) throw new Error("Commit failed");
 
         const json = await res.json();
-
-        if (
-          json.message.includes("Not invited. Ignored.")
-        ) {
-          throw new Error(json);
-        }
 
         setIsSubmitted(true);
       }
@@ -393,9 +392,16 @@ export default function CommitmentPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Full Name"
-                  className="w-full px-4 py-3 bg-white/5 border border-white/20 text-black placeholder-white/30 focus:border-white/40 focus:outline-none focus:bg-white/10 transition-all font-light"
+                  className={`w-full px-4 py-3 bg-white/5 border text-white placeholder-white/30 focus:outline-none focus:bg-white/10 transition-all font-light ${
+                    isNameTooLong ? 'border-red-500/50 focus:border-red-500' : 'border-white/20 focus:border-white/40'
+                  }`}
                   required
                 />
+                {isNameTooLong && (
+                  <p className="text-sm text-red-500/80 mt-2">
+                    Name must be under {MAX_NAME_LENGTH} characters.
+                  </p>
+                )}
               </div>
 
               {/* Threshold Percentage Field */}
@@ -413,7 +419,7 @@ export default function CommitmentPage() {
                     if (/^[0-9]*$/.test(v)) setCommitNumber(v);
                   }}
                   placeholder="Enter a number of people"
-                  className={`w-full px-4 py-3 bg-white/5 border text-black placeholder-white/30 focus:outline-none focus:bg-white/10 transition-all font-light ${
+                  className={`w-full px-4 py-3 bg-white/5 border text-white placeholder-white/30 focus:outline-none focus:bg-white/10 transition-all font-light ${
                     commitNumber.length === 0 || isCommitNumberValid
                       ? 'border-white/20 focus:border-white/40'
                       : 'border-red-500/50 focus:border-red-500'
@@ -539,9 +545,9 @@ export default function CommitmentPage() {
               <div className="pt-4 sm:pt-6 border-t border-white/10">
                 <button
                   onClick={handleSubmit}
-                  disabled={!selectedChoice || !name.trim() || !commitNumber.trim() || !isCommitNumberValid || isSubmitting}
+                  disabled={!selectedChoice || !isNameValid || !commitNumber.trim() || !isCommitNumberValid || isSubmitting}
                   className={`group inline-flex items-center justify-center gap-2 w-full px-6 py-3 sm:px-8 sm:py-4 bg-white text-black font-light text-xs sm:text-sm uppercase tracking-[0.15em] transition hover:bg-white/90 disabled:opacity-30 disabled:cursor-not-allowed ${
-                    selectedChoice && name.trim() && commitNumber.trim() && isCommitNumberValid && !isSubmitting
+                    selectedChoice && isNameValid && commitNumber.trim() && isCommitNumberValid && !isSubmitting
                       ? ''
                       : ''
                   }`}
