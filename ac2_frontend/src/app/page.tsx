@@ -375,30 +375,6 @@ export default function AC2Homepage() {
                 </div>
               </div>
             </Link>
-
-            <Link 
-              href="/objective"
-              className="group relative overflow-hidden rounded-xl border border-white/20 bg-white/5 p-8 md:p-10 transition-all hover:border-white/40 no-underline"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-              <div className="relative z-10 flex flex-col h-full">
-                <div className="flex-grow mb-6">
-                  <div className="h-12 w-12 md:h-16 md:w-16 flex items-center justify-center">
-                    <List className="w-8 h-8 md:w-10 md:h-10 text-white/60 group-hover:text-white transition-colors" />
-                  </div>
-                </div>
-                <div className="flex flex-col gap-4">
-                  <h3 className="text-[20px] md:text-[24px] font-light tracking-wide text-white group-hover:translate-x-1 transition-transform">
-                    Browse Objectives
-                    <span className="opacity-0 group-hover:opacity-100 transition-opacity ml-2">→</span>
-                  </h3>
-                  <p className="text-sm leading-relaxed text-white/70">
-                    Explore active coordination efforts. Find causes that matter to you and see what's gaining momentum.
-                  </p>
-                </div>
-              </div>
-            </Link>
           </div>
         </div>
       </section>
