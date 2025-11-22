@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.interpolate import UnivariateSpline
+from scipy.interpolate import UnivariateSpline, PPoly
 from collections import defaultdict
 from enum import Enum, auto
 import random
@@ -157,7 +157,8 @@ class ThresholdModel:
 
         # Find roots of spline(x) - x = 0
         diff_spline = UnivariateSpline(x, y - x, k=k, s=smoothing)
-        roots = diff_spline.roots()
+        pp = PPoly.from_spline(diff_spline._eval_args)
+        roots = pp.roots()
 
         # Filter roots to be in [0, 1]
         valid_roots = [r for r in roots if 0 <= r <= 1.0]
@@ -295,86 +296,3 @@ class ThresholdModel:
         # Return active set at this final percentage
         active_names = [p[0] for p in self.preferences if p[1] <= final_eq_p + 1e-9]
         return active_names
-
-    def display(self, smoothing=None):
-        """
-        Plot the social behavior curve and equilibria using matplotlib.
-        """
-        x_data, y_data = self._get_curve_data()
-
-        # Re-create spline for plotting
-        # Handle duplicates again just in case
-        unique_x = []
-        unique_y = []
-        for i in range(len(x_data)):
-            if i == 0 or x_data[i] > x_data[i - 1]:
-                unique_x.append(x_data[i])
-                unique_y.append(y_data[i])
-            else:
-                unique_y[-1] = max(unique_y[-1], y_data[i])
-
-        x_clean, y_clean = np.array(unique_x), np.array(unique_y)
-        k = 3 if len(x_clean) > 3 else 1
-        spline = UnivariateSpline(x_clean, y_clean, k=k, s=smoothing)
-
-        x_plot = np.linspace(0, 1, 200)
-        y_plot = spline(x_plot)
-
-        # Ensure clamped to [0, 1] conceptually, though spline might overshoot
-        y_plot = np.clip(y_plot, 0, 1)
-
-        plt.figure(figsize=(8, 6))
-        plt.plot(x_plot, y_plot, "r-", label="Social Behavior Curve")
-        plt.plot([0, 1], [0, 1], "b--", label="Equilibrium Line (y=x)")
-
-        # Find and plot equilibria
-        eqs = self.find_equilibria(smoothing)
-
-        for r, _ in eqs["stable"]:
-            plt.plot(
-                r,
-                r,
-                "go",
-                markersize=8,
-                label=(
-                    "Stable"
-                    if "Stable" not in plt.gca().get_legend_handles_labels()[1]
-                    else ""
-                ),
-            )
-            plt.annotate(
-                f"{r:.2f}",
-                (r, r),
-                textcoords="offset points",
-                xytext=(0, 10),
-                ha="center",
-            )
-
-        for r, _ in eqs["unstable"]:
-            plt.plot(
-                r,
-                r,
-                "mo",
-                markersize=8,
-                label=(
-                    "Unstable"
-                    if "Unstable" not in plt.gca().get_legend_handles_labels()[1]
-                    else ""
-                ),
-            )
-            plt.annotate(
-                f"{r:.2f}",
-                (r, r),
-                textcoords="offset points",
-                xytext=(0, -15),
-                ha="center",
-            )
-
-        plt.title("Social Behavior Threshold Model")
-        plt.xlabel("Percentage of others doing X")
-        plt.ylabel("Percentage willing to do X")
-        plt.legend()
-        plt.grid(True)
-        plt.xlim([0, 1])
-        plt.ylim([0, 1.05])
-        plt.show()
