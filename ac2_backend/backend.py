@@ -36,8 +36,8 @@ class Objective(BaseModel):
 def create_objective(
     o: Objective
 ):
-    if isinstance(resolution_date, str):
-        resolution_date = datetime.fromisoformat(o.resolution_date)
+    if isinstance(o.resolution_date, str):
+        o.resolution_date = datetime.fromisoformat(o.resolution_date)
 
     objective_doc = {
         "title": o.title,

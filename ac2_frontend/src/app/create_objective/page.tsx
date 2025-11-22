@@ -40,8 +40,8 @@ export default function CreateObjectivePage() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(data),
-    }).then(r => r.json()).catch(err => {throw new Error(`Request failed: ${err}`); });
-    router.push(`/objective/${response.objective_id}`)
+    }).then(r => r.json()).catch(err => {alert(`Request failed: ${err}`); });
+    // router.push(`/objective/${response.objective_id}`)
   }
 
   return (
@@ -94,7 +94,7 @@ export default function CreateObjectivePage() {
               type="date"
               required
               value={resolutionDate}
-              onChange={(e) => setResolutionDate(e.target.value)}
+              onChange={(e) => setResolutionDate(e.target.value ? new Date(e.target.value).toISOString() : "")}
               className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             />
           </div>
