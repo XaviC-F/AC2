@@ -232,8 +232,12 @@ export default function CommitmentPage() {
             <div className="bg-slate-50 rounded-xl p-6 mt-6">
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
+                  <div className="text-sm text-slate-600 mb-1">Threshold Required</div>
+                  <div className="text-2xl font-bold text-slate-900">{objective.threshold}%</div>
+                </div>
+                <div>
                   <div className="text-sm text-slate-600 mb-1">Deadline</div>
-                  <div className="text-lg font-bold text-slate-900">{new Date(objective?.resolutionDate ?? "").toLocaleDateString()}</div>
+                  <div className="text-lg font-bold text-slate-900">{new Date(objective.deadline).toLocaleDateString()}</div>
                 </div>
               </div>
             </div>
