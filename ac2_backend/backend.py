@@ -39,7 +39,6 @@ def create_objective(
         "invited_people": invited_names,  # list of strings
         # empty list at start
         "commitments": [],
-        "published": published
         "published": published,
         "modified_at": datetime.utcnow().isoformat(),
     }
@@ -124,10 +123,6 @@ def commit(objective_id, name, number):
             )
 
         return "Commitment stored."
-
-
-@app.get("/objective/{objective_id}")
-def serve_view(objective_id):
     
 @app.get("/objective/{objective_id}")    
 def serve_view (objective_id):
@@ -163,11 +158,6 @@ def get_most_recently_published(limit: int = 10):
             objectives,
         )
     )
-        return {"title": objective.get("title"),
-                "description": objective.get("description"),
-                "resolution_date": objective.get("resolution_date"),
-                "commitments": objective.get("commitments")
-                }
 
 @app.get("/debug/objective/{objective_id}")
 def debug_objective(objective_id: str):
