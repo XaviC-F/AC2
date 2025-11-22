@@ -1,117 +1,105 @@
-from threshold import ThresholdModel, ResolutionStrategy
-import numpy as np
-import random
+import unittest
+import secrets
+from commit_classes import CommitEncrypter, NameHolder, CommitDecrypter
+from threshold_encrypted import ThresholdEncryptedModel, ResolutionStrategy
 
-# Test case from blog post
-prefs = [
-    ("Alex", 0.0),
-    ("Betty", 0.0),
-    ("Charlie", 0.1),
-    ("Diana", 0.15),
-    ("Evan", 0.2),
-    ("Fred", 0.25),
-    ("Grace", 0.3),
-    ("Henry", 0.35),
-    ("Isaac", 0.37),  # 7/19
-    ("Jenny", 0.4),
-    ("Kevin", 0.5),
-    ("Lisa", 0.6),
-    ("Mike", 0.7),
-    ("Nancy", 0.8),
-    ("Oscar", 0.9),
-    ("Pete", 1.0),
-    ("Quinn", 1.0),
-    ("Riley", float("inf")),
-    ("Steve", float("inf")),
-    ("Tara", float("inf")),
-]
+class TestThresholdSystem(unittest.TestCase):
+    def test_commit_encrypter_basics(self):
+        names = ["Alice", "Bob", "Charlie"]
+        nh = NameHolder(names)
+        # Min count 1 (default)
+        enc = CommitEncrypter(nh, len(names))
+        
+        # Test commit structure
+        ct, x, vec = enc.commit("Alice", 2)
+        self.assertIsInstance(ct, str)
+        self.assertIsInstance(x, int)
+        self.assertIsInstance(vec, list)
+        self.assertEqual(len(vec), 3)
+        
+        ct_neg, x_neg, vec_neg = enc.commit("Bob", -1)
+        self.assertEqual(len(vec_neg), 3)
+        
+        # Test non-member (should return noise)
+        ct_inv, x_inv, vec_inv = enc.commit("Mallory", 2)
+        self.assertEqual(len(vec_inv), 3)
+        # Can't verify it's noise directly without knowing keys, but it shouldn't crash.
 
-print("=== Test 1: Default (Pessimistic, min=0.0) ===")
-model = ThresholdModel(prefs)
-print(f"Resolution Strategy: {model.resolution_strategy}")
-active = model.resolve(smoothing=0)
-print(f"Active Count: {len(active)}")
-print(f"Active Percentage: {len(active)/len(prefs):.2f}")
+    def test_decryption_logic(self):
+        names = ["A", "B", "C"]
+        nh = NameHolder(names)
+        enc = CommitEncrypter(nh, len(names), min_count=1)
+        dec = CommitDecrypter(len(names))
+        
+        ct1, x1, vec1 = enc.commit("A", 1)
+        dec.add_commitment(ct1, x1, vec1)
+        res = dec.decrypt()
+        self.assertIn("A", res)
+        
+        ct2, x2, vec2 = enc.commit("B", 2)
+        dec.add_commitment(ct2, x2, vec2)
+        res = dec.decrypt()
+        self.assertIn("B", res)
+        
+    def test_discrete_model_integration(self):
+        # Init with -1 (Never) so they don't accidentally trigger higher thresholds
+        names = ["Alice", "Bob", "Charlie", "David"]
+        prefs = [(n, -1) for n in names] 
+        
+        tm = ThresholdEncryptedModel(prefs, min_percentage=0.0)
+        
+        tm.add_preference("Alice", 2)
+        tm.add_preference("Bob", 2)
+        
+        res = tm.resolve()
+        self.assertIn("Alice", res)
+        self.assertIn("Bob", res)
+        self.assertNotIn("Charlie", res)
+        
+        tm.add_preference("Charlie", 3)
+        res = tm.resolve()
+        self.assertIn("Charlie", res)
+        
+        # David still -1
+        self.assertNotIn("David", res)
+        
+        # Set David to 5 (clamped to 4)
+        # If David is 4, he is willing if 4 people are.
+        # A(2), B(2), C(3), D(4).
+        # All 4 are willing at size 4.
+        # So D is revealed.
+        tm.add_preference("David", 5)
+        res = tm.resolve()
+        self.assertIn("David", res)
 
-print("\n=== Test 2: Optimistic ===")
-model_opt = ThresholdModel(prefs, resolution_strategy=ResolutionStrategy.OPTIMISTIC)
-active_opt = model_opt.resolve(smoothing=0)
-print(f"Active Count: {len(active_opt)}")
+    def test_min_count_logic(self):
+        names = ["A", "B", "C", "D"]
+        # Init with -1
+        prefs = [(n, -1) for n in names]
+        # 0.75 * 4 = 3
+        tm = ThresholdEncryptedModel(prefs, min_percentage=0.75) 
+        
+        self.assertEqual(tm.min_count, 3)
+        
+        tm.add_preference("A", 1)
+        # A=1. k=3. 
+        # Only A willing. Need 3.
+        res = tm.resolve()
+        self.assertEqual(len(res), 0)
+        
+        tm.add_preference("B", 1)
+        res = tm.resolve()
+        self.assertEqual(len(res), 0)
+        
+        tm.add_preference("C", 1)
+        # A, B, C willing at 1.
+        # All contribute to k=3 (since noise limit 2 <= 2).
+        # 3 users. Need 3 points.
+        res = tm.resolve()
+        self.assertEqual(len(res), 3)
+        self.assertIn("A", res)
+        self.assertIn("B", res)
+        self.assertIn("C", res)
 
-print("\n=== Test 3: High Min Percentage (forcing function) ===")
-model_forced = ThresholdModel(
-    prefs, min_percentage=0.75, resolution_strategy=ResolutionStrategy.PESSIMISTIC
-)
-active_forced = model_forced.resolve(smoothing=0)
-print(f"Active Count: {len(active_forced)}")
-print(f"Active names: {active_forced}")
-
-print("\n=== Test 4: Random Strategy ===")
-model_rand = ThresholdModel(prefs, resolution_strategy=ResolutionStrategy.RANDOM)
-active_rand = model_rand.resolve(smoothing=0)
-print(f"Active Count: {len(active_rand)}")
-
-print("\n=== Test 5: Custom Strategy ===")
-model_custom = ThresholdModel(prefs, resolution_strategy=ResolutionStrategy.CUSTOM)
-active_custom = model_custom.resolve(custom_seed=0.05, smoothing=0)
-print(f"Active Count (seed 0.05): {len(active_custom)}")
-
-
-print("\n=== Test 6: Complex Curve (Multiple Equilibria) ===")
-# Construct alternating dense and sparse regions
-complex_prefs = []
-random.seed(42)
-np.random.seed(42)
-
-# 0.0-0.2: Dense (25 people) -> steep rise (Slope > 1)
-# This creates a stable equilibrium where it crosses y=x (likely around 0.2-0.25)
-for i in range(25):
-    complex_prefs.append((f"G1_{i}", np.random.uniform(0.0, 0.2)))
-
-# 0.2-0.4: Sparse (5 people) -> flat (Slope < 1)
-# This allows y=x to catch up and cross back (creating unstable eq)
-for i in range(5):
-    complex_prefs.append((f"G2_{i}", np.random.uniform(0.2, 0.4)))
-
-# 0.4-0.6: Dense (40 people) -> steep rise again (Slope > 1)
-# Should cross y=x again (stable eq)
-for i in range(40):
-    complex_prefs.append((f"G3_{i}", np.random.uniform(0.4, 0.6)))
-
-# 0.6-0.8: Sparse (5 people)
-for i in range(5):
-    complex_prefs.append((f"G4_{i}", np.random.uniform(0.6, 0.8)))
-
-# 0.8-1.0: Dense (25 people)
-for i in range(25):
-    complex_prefs.append((f"G5_{i}", np.random.uniform(0.8, 1.0)))
-
-# Total 100 people
-model_complex = ThresholdModel(complex_prefs)
-print("Finding equilibria for complex data (smoothing=0)...")
-eqs = model_complex.find_equilibria(smoothing=0)
-
-print("Stable Equilibria (%):", [f"{p:.2f}" for p, _ in eqs["stable"]])
-print("Unstable Equilibria (%):", [f"{p:.2f}" for p, _ in eqs["unstable"]])
-
-# Test resolution from different points
-print("\nResolving from 0.0 (Pessimistic):")
-res_pess = model_complex.resolve(smoothing=0)
-print(f"Result: {len(res_pess)} active ({len(res_pess)/100:.2f})")
-
-print("\nResolving from 1.0 (Optimistic):")
-# Optimistic needs new model instance or just pass logic manually?
-# resolve() uses self.resolution_strategy.
-# We can create a new model.
-model_comp_opt = ThresholdModel(
-    complex_prefs, resolution_strategy=ResolutionStrategy.OPTIMISTIC
-)
-res_opt = model_comp_opt.resolve(smoothing=0)
-print(f"Result: {len(res_opt)} active ({len(res_opt)/100:.2f})")
-
-print("\nResolving from 0.5 (Custom):")
-model_comp_custom = ThresholdModel(
-    complex_prefs, resolution_strategy=ResolutionStrategy.CUSTOM
-)
-res_cust = model_comp_custom.resolve(custom_seed=0.5, smoothing=0)
-print(f"Result: {len(res_cust)} active ({len(res_cust)/100:.2f})")
+if __name__ == "__main__":
+    unittest.main()
