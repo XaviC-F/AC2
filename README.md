@@ -1,1 +1,1 @@
-# AC2
+# AC2 - Anonymous Collective Commitments
