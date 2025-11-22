@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.interpolate import UnivariateSpline
 from collections import defaultdict
 from enum import Enum, auto
@@ -110,7 +109,7 @@ class ThresholdEncryptedModel:
         # Perform Encryption
         # threshold -1 means never.
         thresh_int = int(t_val)
-        ct, x, vec = self.encrypter.commit(name, thresh_int)
+        ct, points = self.encrypter.commit(name, thresh_int)
         
         # Store in decrypter (server-side simulation of receiving data)
         # In a real system, this happens elsewhere.
@@ -120,7 +119,7 @@ class ThresholdEncryptedModel:
         # Simplest: Rebuild Decrypter from current self.commitments state.
         self._rebuild_decrypter()
                 
-        return ct, vec
+        return ct, points
 
     def remove_preference(self, name):
         """Remove a preference by name."""
@@ -143,8 +142,8 @@ class ThresholdEncryptedModel:
             # Re-generate commitment packet for the current state
             # (In reality, we would store the ciphertext/vec, but here we generate on fly for simulation)
             thresh_int = int(t)
-            ct, x, vec = self.encrypter.commit(name, thresh_int)
-            self.decrypter.add_commitment(ct, x, vec)
+            ct, points = self.encrypter.commit(name, thresh_int)
+            self.decrypter.add_commitment(ct, points)
 
     def _get_curve_data(self):
         """
@@ -260,49 +259,3 @@ class ThresholdEncryptedModel:
         # The Decrypter has been maintained in sync via add/remove hooks.
         # Just call decrypt.
         return self.decrypter.decrypt()
-
-    def display(self, smoothing=None):
-        """
-        Plot the social behavior curve and equilibria using matplotlib.
-        """
-        x_data, y_data = self._get_curve_data()
-
-        unique_x = []
-        unique_y = []
-        for i in range(len(x_data)):
-            if i == 0 or x_data[i] > x_data[i - 1]:
-                unique_x.append(x_data[i])
-                unique_y.append(y_data[i])
-            else:
-                unique_y[-1] = max(unique_y[-1], y_data[i])
-
-        x_clean, y_clean = np.array(unique_x), np.array(unique_y)
-        k = 3 if len(x_clean) > 3 else 1
-        spline = UnivariateSpline(x_clean, y_clean, k=k, s=smoothing)
-
-        x_plot = np.linspace(0, self.n_total, 200)
-        y_plot = spline(x_plot)
-        y_plot = np.clip(y_plot, 0, self.n_total)
-
-        plt.figure(figsize=(8, 6))
-        plt.plot(x_plot, y_plot, "r-", label="Social Behavior Curve")
-        plt.plot([0, self.n_total], [0, self.n_total], "b--", label="Equilibrium Line (y=x)")
-
-        eqs = self.find_equilibria(smoothing)
-
-        for r, _ in eqs["stable"]:
-            plt.plot(r, r, "go", markersize=8, label="Stable")
-            plt.annotate(f"{r:.1f}", (r, r), textcoords="offset points", xytext=(0, 10), ha="center")
-
-        for r, _ in eqs["unstable"]:
-            plt.plot(r, r, "mo", markersize=8, label="Unstable")
-            plt.annotate(f"{r:.1f}", (r, r), textcoords="offset points", xytext=(0, -15), ha="center")
-
-        plt.title("Social Behavior Threshold Model (Absolute Numbers)")
-        plt.xlabel("Number of others doing X")
-        plt.ylabel("Number willing to do X")
-        plt.legend()
-        plt.grid(True)
-        plt.xlim([0, self.n_total])
-        plt.ylim([0, self.n_total * 1.05])
-        plt.show()

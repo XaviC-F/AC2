@@ -37,6 +37,9 @@ class CommitEncrypter:
         
         # Generate coefficients a_0 ... a_{n-1}
         self.coeffs = [secrets.randbelow(self.MOD) for _ in range(self.n)]
+
+        # Track used x values to ensure uniqueness
+        self.used_xs: Set[int] = set()
         
     def _encrypt_name(self, key_int: int, name: str) -> str:
         """
@@ -66,68 +69,73 @@ class CommitEncrypter:
             x_pow = (x_pow * x) % self.MOD
         return y
 
-    def commit(self, name: str, threshold: int) -> Tuple[str, int, List[int]]:
+    def _get_unique_x(self) -> int:
+        """Generate a random x that hasn't been used before."""
+        while True:
+            x = secrets.randbelow(self.MOD)
+            if x != 0 and x not in self.used_xs:
+                self.used_xs.add(x)
+                return x
+
+    def commit(self, name: str, threshold: int) -> Tuple[str, List[Tuple[int, int]]]:
         """
-        Returns (ciphertext, x, vector).
+        Returns (ciphertext, points).
+        points is a list of (x, y) tuples for each level i=0..n-1.
         threshold: raw number of people required (1 to n). -1 for never.
-        
-        The vector corresponds to the columns of the lower triangular matrix.
-        High thresholds mean top rows are noise.
-        If name is not in the authorized group (checked via NameHolder), returns noise.
         """
         # Check membership first
         if not self.name_holder.is_member(name):
             # Not in group: Return noise
-            x = secrets.randbelow(self.MOD)
-            vector = [secrets.randbelow(self.MOD) for _ in range(self.n)]
-            return secrets.token_hex(16), x, vector
+            points = []
+            for _ in range(self.n):
+                x = self._get_unique_x()
+                y = secrets.randbelow(self.MOD)
+                points.append((x, y))
+            return secrets.token_hex(16), points
 
         if threshold == -1:
             # All noise
-            x = secrets.randbelow(self.MOD)
-            vector = [secrets.randbelow(self.MOD) for _ in range(self.n)]
-            # Random ciphertext
-            return secrets.token_hex(16), x, vector
+            points = []
+            for _ in range(self.n):
+                x = self._get_unique_x()
+                y = secrets.randbelow(self.MOD)
+                points.append((x, y))
+            return secrets.token_hex(16), points
             
         # Clamp threshold to [1, n]
         p_m = max(1, min(threshold, self.n))
         
         # Encrypt name with key a_{p_m-1}
-        # This corresponds to the highest coefficient of f_{p_m-1}
-        # Actually, f_{k-1} involves a_0...a_{k-1}.
-        # Any of them could be the key, but usually the highest one is specific to this level.
         key = self.coeffs[p_m - 1]
         ciphertext = self._encrypt_name(key, name)
         
-        x = secrets.randbelow(self.MOD)
-        vector = []
+        points = []
         
         # Determine noise floor
-        # 1. Based on min_count: indices < min_count - 1 are noise
         global_noise_limit = self.min_count - 1
-        
-        # 2. Based on user threshold: indices < p_m - 1 are noise
-        # "Higher thresholds mean the top (k-1) rows are instead filled with noise"
         user_noise_limit = p_m - 1
-        
         noise_limit = max(global_noise_limit, user_noise_limit)
         
         for i in range(self.n):
+            x = self._get_unique_x()
             if i < noise_limit:
-                vector.append(secrets.randbelow(self.MOD))
+                y = secrets.randbelow(self.MOD)
             else:
-                vector.append(self._eval_poly(i, x))
+                y = self._eval_poly(i, x)
+            points.append((x, y))
                 
-        return ciphertext, x, vector
+        return ciphertext, points
 
 class CommitDecrypter:
     def __init__(self, n: int):
         self.n = n
         self.MOD = 2**127 - 1
-        self.commitments: List[Tuple[str, int, List[int], int]] = []
+        # Store commitments as (ciphertext, points, original_index)
+        # points is List[(x, y)]
+        self.commitments: List[Tuple[str, List[Tuple[int, int]], int]] = []
 
-    def add_commitment(self, ciphertext: str, x: int, vector: List[int]):
-        self.commitments.append((ciphertext, x, vector, len(self.commitments)))
+    def add_commitment(self, ciphertext: str, points: List[Tuple[int, int]]):
+        self.commitments.append((ciphertext, points, len(self.commitments)))
 
     def _decrypt_name(self, key_int: int, ciphertext_hex: str) -> Optional[str]:
         try:
@@ -152,14 +160,6 @@ class CommitDecrypter:
         k = len(points)
         if k == 0: return []
         
-        # Lagrange interpolation
-        # f(x) = sum_j y_j * l_j(x)
-        # l_j(x) = prod_{i!=j} (x - x_i) / (x_j - x_i)
-        
-        # We need to expand prod_{i!=j} (x - x_i) into coefficients.
-        # This is O(k^3) or O(k^2) depending on implementation.
-        # Since k is small (number of users), O(k^3) is fine.
-        
         xs = [p[0] for p in points]
         ys = [p[1] for p in points]
         
@@ -179,18 +179,11 @@ class CommitDecrypter:
             term_scaler = (yj * inv_denom) % self.MOD
             
             # Calculate numerator poly: prod(x - xi)
-            # poly starts as [1] (constant 1)
-            # Multiply by (x - xi) -> poly shifts right - xi * poly
-            poly_coeffs = [0] * k # Max degree k-1
-            poly_coeffs[0] = 1 # We need to track size properly.
-            # Actually, prod of k-1 terms has degree k-1.
-            # Let's use a temporary list that grows.
             current_poly = [1] 
             
             for i in range(k):
                 if i == j: continue
                 # Multiply current_poly by (x - xi)
-                # new_poly[m] = current_poly[m-1] - xi * current_poly[m]
                 xi = xs[i]
                 new_poly = [0] * (len(current_poly) + 1)
                 for deg in range(len(current_poly)):
@@ -219,22 +212,15 @@ class CommitDecrypter:
                 subset_indices = confirmed_users[:k]
                 points = []
                 for idx in subset_indices:
-                    ct, x, vec, _ = self.commitments[idx]
-                    points.append((x, vec[k-1]))
+                    ct, pts, _ = self.commitments[idx]
+                    # pts is list of (x, y). We need the one for level k-1
+                    points.append(pts[k-1])
                 
                 coeffs = self._recover_coeffs(points)
-                # coeffs is [a_0, a_1, ..., a_{k-1}]
-                # Note: Since coefficients are GLOBAL, a_0 retrieved here is THE a_0.
-                # We can try to decrypt unknown users using ANY of these keys a_0...a_{k-1}.
-                # Actually, we should verify consistency if we solved earlier levels?
-                # But assuming noise, we might re-solve a_0 at level k.
                 
                 # Try to decrypt unknown users
                 for u_idx in unknown_users:
-                    ct, _, _, _ = self.commitments[u_idx]
-                    # Check against all available keys
-                    # If a user has threshold T <= k, they are encrypted with a_{T-1}.
-                    # Since we have a_0...a_{k-1}, we have all keys for thresholds 1...k.
+                    ct, _, _ = self.commitments[u_idx]
                     found_name = None
                     found_t = None
                     for t_candidate in range(1, k + 1):
@@ -248,7 +234,7 @@ class CommitDecrypter:
                     
                     if found_name:
                         revealed_users[u_idx] = found_name
-                        confirmed_thresholds[u_idx] = found_t # Could be smaller than k
+                        confirmed_thresholds[u_idx] = found_t 
                 
                 continue 
             
@@ -261,10 +247,9 @@ class CommitDecrypter:
             
             base_points = []
             for idx in confirmed_users:
-                ct, x, vec, _ = self.commitments[idx]
-                base_points.append((x, vec[k-1]))
+                ct, pts, _ = self.commitments[idx]
+                base_points.append(pts[k-1])
             
-            from itertools import combinations
             for unknown_subset in combinations(unknown_users, needed):
                 comb_count += 1
                 if comb_count > MAX_COMBS:
@@ -272,22 +257,16 @@ class CommitDecrypter:
                 
                 current_points = list(base_points)
                 for u_idx in unknown_subset:
-                    ct, x, vec, _ = self.commitments[u_idx]
-                    current_points.append((x, vec[k-1]))
+                    ct, pts, _ = self.commitments[u_idx]
+                    current_points.append(pts[k-1])
                 
                 coeffs = self._recover_coeffs(current_points)
-                # We have candidate [a_0...a_{k-1}].
-                
-                # Verify: Do these keys decrypt the users in the subset?
-                # Each user in subset must be decryptable by SOME key in a_0...a_{k-1}.
-                # AND if they decrypt with a_{T-1}, their threshold is T.
-                # Since they are contributing to level k, T must be <= k.
                 
                 all_match = True
                 newly_revealed = []
                 
                 for u_idx in unknown_subset:
-                    ct, _, _, _ = self.commitments[u_idx]
+                    ct, _, _ = self.commitments[u_idx]
                     
                     found_name = None
                     found_t = None
@@ -315,7 +294,7 @@ class CommitDecrypter:
                     # Check remaining
                     remaining = [u for u in unknown_users if u not in unknown_subset]
                     for u_idx in remaining:
-                        ct, _, _, _ = self.commitments[u_idx]
+                        ct, _, _ = self.commitments[u_idx]
                         for t_candidate in range(1, k + 1):
                             key_idx = t_candidate - 1
                             if key_idx < len(coeffs):

@@ -11,18 +11,23 @@ class TestThresholdSystem(unittest.TestCase):
         enc = CommitEncrypter(nh, len(names))
         
         # Test commit structure
-        ct, x, vec = enc.commit("Alice", 2)
+        ct, points = enc.commit("Alice", 2)
         self.assertIsInstance(ct, str)
-        self.assertIsInstance(x, int)
-        self.assertIsInstance(vec, list)
-        self.assertEqual(len(vec), 3)
+        self.assertIsInstance(points, list)
+        self.assertEqual(len(points), 3)
+        for pt in points:
+            self.assertIsInstance(pt, tuple)
+            self.assertEqual(len(pt), 2)
+            self.assertIsInstance(pt[0], int)
+            self.assertIsInstance(pt[1], int)
+            self.assertNotEqual(pt[0], 0) # x != 0 check
         
-        ct_neg, x_neg, vec_neg = enc.commit("Bob", -1)
-        self.assertEqual(len(vec_neg), 3)
+        ct_neg, points_neg = enc.commit("Bob", -1)
+        self.assertEqual(len(points_neg), 3)
         
         # Test non-member (should return noise)
-        ct_inv, x_inv, vec_inv = enc.commit("Mallory", 2)
-        self.assertEqual(len(vec_inv), 3)
+        ct_inv, points_inv = enc.commit("Mallory", 2)
+        self.assertEqual(len(points_inv), 3)
         # Can't verify it's noise directly without knowing keys, but it shouldn't crash.
 
     def test_decryption_logic(self):
@@ -31,13 +36,13 @@ class TestThresholdSystem(unittest.TestCase):
         enc = CommitEncrypter(nh, len(names), min_count=1)
         dec = CommitDecrypter(len(names))
         
-        ct1, x1, vec1 = enc.commit("A", 1)
-        dec.add_commitment(ct1, x1, vec1)
+        ct1, points1 = enc.commit("A", 1)
+        dec.add_commitment(ct1, points1)
         res = dec.decrypt()
         self.assertIn("A", res)
         
-        ct2, x2, vec2 = enc.commit("B", 2)
-        dec.add_commitment(ct2, x2, vec2)
+        ct2, points2 = enc.commit("B", 2)
+        dec.add_commitment(ct2, points2)
         res = dec.decrypt()
         self.assertIn("B", res)
         
