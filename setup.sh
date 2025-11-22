@@ -2,6 +2,23 @@
 
 set -e  # Exit on error
 
+# Save original directory
+ORIGINAL_DIR="$(pwd)"
+
+# Get the directory where the script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Change to script directory (project root)
+cd "$SCRIPT_DIR"
+
+# Function to restore original directory
+restore_dir() {
+    cd "$ORIGINAL_DIR"
+}
+
+# Trap to restore directory on exit (including errors)
+trap restore_dir EXIT INT TERM
+
 echo "🚀 AC2 Project Setup Script"
 echo "============================"
 echo ""
@@ -122,6 +139,16 @@ else
     npm install
 fi
 print_success "Frontend dependencies installed"
+
+# Build frontend
+echo ""
+print_success "Building frontend..."
+if [ "$PACKAGE_MANAGER" == "pnpm" ]; then
+    pnpm run build
+else
+    npm run build
+fi
+print_success "Frontend build complete"
 cd ..
 echo ""
 

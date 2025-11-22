@@ -2,6 +2,15 @@
 
 set -e  # Exit on error
 
+# Save original directory
+ORIGINAL_DIR="$(pwd)"
+
+# Get the directory where the script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Change to script directory (project root)
+cd "$SCRIPT_DIR"
+
 echo "🚀 Starting AC2 Servers"
 echo "========================"
 echo ""
@@ -54,23 +63,86 @@ check_mongodb() {
     fi
 }
 
+# Function to kill processes on ports
+kill_port() {
+    local port=$1
+    local name=$2
+    local pids=$(lsof -ti:$port 2>/dev/null)
+    if [ ! -z "$pids" ]; then
+        echo "$pids" | xargs kill -TERM 2>/dev/null || true
+        sleep 1
+        # Force kill if still running
+        local remaining=$(lsof -ti:$port 2>/dev/null)
+        if [ ! -z "$remaining" ]; then
+            echo "$remaining" | xargs kill -KILL 2>/dev/null || true
+        fi
+        print_success "$name stopped (port $port)"
+    fi
+}
+
+# Function to kill processes by PID
+kill_pid() {
+    local pid=$1
+    local name=$2
+    if [ ! -z "$pid" ] && ps -p $pid > /dev/null 2>&1; then
+        kill -TERM $pid 2>/dev/null || true
+        sleep 1
+        # Force kill if still running
+        if ps -p $pid > /dev/null 2>&1; then
+            kill -KILL $pid 2>/dev/null || true
+        fi
+        print_success "$name stopped (PID: $pid)"
+    fi
+}
+
 # Cleanup function to kill background processes
 cleanup() {
     echo ""
     print_info "Shutting down servers..."
+    
+    # Kill by PID first (more precise)
     if [ ! -z "$BACKEND_PID" ]; then
-        kill $BACKEND_PID 2>/dev/null || true
-        print_success "Backend stopped"
+        kill_pid $BACKEND_PID "Backend"
     fi
     if [ ! -z "$FRONTEND_PID" ]; then
-        kill $FRONTEND_PID 2>/dev/null || true
-        print_success "Frontend stopped"
+        kill_pid $FRONTEND_PID "Frontend"
     fi
+    
+    # Also kill by port (catches any orphaned processes)
+    kill_port 8000 "Backend"
+    kill_port 3000 "Frontend"
+    
+    # Kill any remaining uvicorn or next processes in this directory
+    pkill -f "uvicorn.*backend:app" 2>/dev/null || true
+    pkill -f "next dev" 2>/dev/null || true
+    
+    # Restore original directory before exiting
+    cd "$ORIGINAL_DIR"
+    
     exit 0
 }
 
-# Set up signal handlers
-trap cleanup SIGINT SIGTERM
+# Set up signal handlers - EXIT trap catches all exits (normal, error, signals)
+trap cleanup EXIT INT TERM
+
+# Check for and kill existing processes
+echo "🧹 Checking for existing processes..."
+EXISTING_BACKEND=$(lsof -ti:8000 2>/dev/null || true)
+EXISTING_FRONTEND=$(lsof -ti:3000 2>/dev/null || true)
+
+if [ ! -z "$EXISTING_BACKEND" ] || [ ! -z "$EXISTING_FRONTEND" ]; then
+    print_warning "Found existing processes on ports 8000 or 3000"
+    if [ ! -z "$EXISTING_BACKEND" ]; then
+        print_info "Killing existing backend process(es) on port 8000..."
+        kill_port 8000 "Existing backend"
+    fi
+    if [ ! -z "$EXISTING_FRONTEND" ]; then
+        print_info "Killing existing frontend process(es) on port 3000..."
+        kill_port 3000 "Existing frontend"
+    fi
+    sleep 2
+fi
+echo ""
 
 # Check MongoDB
 echo "🍃 Checking MongoDB..."
