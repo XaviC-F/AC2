@@ -18,7 +18,6 @@ client = MongoClient("mongodb://localhost:27017/")
 db = client["objectives_db"]
 objectives_col = db["objectives"]
 
-
 @app.post("/objective")
 def create_objective(
     title: str,
@@ -61,7 +60,6 @@ def is_past_resolution_date(objective):
     # Compare only the DATE part (not hour/min)
     today = datetime.utcnow().date()
     return today > res_date.date()
-
 
 def compute_current_equilibrium(objective):
     commitments = objective.get("commitments", [])
