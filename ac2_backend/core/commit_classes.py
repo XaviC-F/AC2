@@ -11,6 +11,7 @@ class NameHolder:
         Stores hashes only and deletes the original list.
         """
         self.hashes = {self._hash_name(name) for name in names}
+        self.group_size = len(self.hashes)
         # Original list is not stored
 
     def _hash_name(self, name: str) -> str: 
@@ -21,28 +22,27 @@ class NameHolder:
         return self._hash_name(name) in self.hashes
 
 class CommitEncrypter:
-    def __init__(self, name_holder: NameHolder, group_size: int, min_count: int = 1, seed: str = None):
+    def __init__(self, name_holder: NameHolder, min_count: int = 1, seed: str = None):
         """
         Initialize the encryption server state.
         name_holder: The NameHolder instance to verify membership.
-        group_size: The size of the authorized set N (upper bound).
         min_count: The minimum number of people required to reveal anything.
                    Rows 0 to min_count-2 will always be noise.
-        seed: Optional seed to deterministically initialize coefficients.
+        seed: Optional seed to deterministically initialize coefficients (for testing only).
         """
         self.name_holder = name_holder
-        self.n = group_size
+        self.n = name_holder.group_size
         self.min_count = max(1, min_count)
         
         # Mersenne Prime 2**127 - 1
         self.MOD = 2**127 - 1
         
         if seed:
-            # Deterministic initialization
+            # Deterministic initialization (for testing only)
             self.rng = random.Random(seed)
         else:
-            # Randomized initialization
-            self.rng = random.Random(secrets.token_bytes(32))
+            # Use cryptographically secure random generator
+            self.rng = secrets.SystemRandom()
 
         # Generate coefficients a_0 ... a_{n-1}
         self.coeffs = [self.rng.randint(0, self.MOD - 1) for _ in range(self.n)]
@@ -53,16 +53,31 @@ class CommitEncrypter:
     def _encrypt_name(self, key_int: int, name: str) -> str:
         """
         Encrypt name using a key derived from a polynomial coefficient.
-        Prepends a magic string 'AC2:' to verify decryption.
+        Uses HMAC-SHA256 with a cryptographic nonce for security.
+        Format: nonce (16 bytes) || encrypted_data
         """
-        key_bytes = hashlib.sha256(str(key_int).encode()).digest()
-        # Prepend magic bytes for verification
+        # Generate cryptographic nonce
+        nonce = secrets.token_bytes(16)
+        
+        # Derive encryption key using HMAC with the nonce
+        import hmac
+        key_material = hmac.new(
+            str(key_int).encode('utf-8'),
+            nonce,
+            hashlib.sha256
+        ).digest()
+        
+        # Prepend magic string for verification
         plaintext = "AC2:" + name
         pt_bytes = plaintext.encode('utf-8')
+        
+        # XOR encryption with derived key
         ct_bytes = bytearray()
         for i, b in enumerate(pt_bytes):
-            ct_bytes.append(b ^ key_bytes[i % len(key_bytes)])
-        return ct_bytes.hex()
+            ct_bytes.append(b ^ key_material[i % len(key_material)])
+        
+        # Return nonce || ciphertext
+        return (nonce + ct_bytes).hex()
 
     def _eval_poly(self, row_idx: int, x: int) -> int:
         """
@@ -94,25 +109,18 @@ class CommitEncrypter:
         """
         Returns (ciphertext, points).
         points is a list of (x, y) tuples for each level i=0..n-1.
+        Points below the noise limit are (0, 0) to indicate no data.
         threshold: raw number of people required (1 to n). -1 for never.
         """
         # Check membership first
         if not self.name_holder.is_member(name):
-            # Not in group: Return noise
-            points = []
-            for _ in range(self.n):
-                x = self._get_unique_x()
-                y = self.rng.randint(0, self.MOD - 1)
-                points.append((x, y))
+            # Not in group: Return all zeros
+            points = [(0, 0) for _ in range(self.n)]
             return secrets.token_hex(16), points
 
         if threshold == -1:
-            # All noise
-            points = []
-            for _ in range(self.n):
-                x = self._get_unique_x()
-                y = self.rng.randint(0, self.MOD - 1)
-                points.append((x, y))
+            # All noise (all zeros)
+            points = [(0, 0) for _ in range(self.n)]
             return secrets.token_hex(16), points
             
         # Clamp threshold to [1, n]
@@ -130,12 +138,14 @@ class CommitEncrypter:
         noise_limit = max(global_noise_limit, user_noise_limit)
         
         for i in range(self.n):
-            x = self._get_unique_x()
             if i < noise_limit:
-                y = self.rng.randint(0, self.MOD - 1)
+                # Use (0, 0) to indicate no data at this level
+                points.append((0, 0))
             else:
+                # Generate actual polynomial point
+                x = self._get_unique_x()
                 y = self._eval_poly(i, x)
-            points.append((x, y))
+                points.append((x, y))
                 
         return ciphertext, points
 
@@ -152,11 +162,26 @@ class CommitDecrypter:
 
     def _decrypt_name(self, key_int: int, ciphertext_hex: str) -> Optional[str]:
         try:
-            ct_bytes = bytes.fromhex(ciphertext_hex)
-            key_bytes = hashlib.sha256(str(key_int).encode()).digest()
+            import hmac
+            data = bytes.fromhex(ciphertext_hex)
+            
+            # Extract nonce (first 16 bytes) and ciphertext
+            if len(data) < 16:
+                return None
+            nonce = data[:16]
+            ct_bytes = data[16:]
+            
+            # Derive same encryption key using HMAC with the nonce
+            key_material = hmac.new(
+                str(key_int).encode('utf-8'),
+                nonce,
+                hashlib.sha256
+            ).digest()
+            
+            # XOR decryption
             pt_bytes = bytearray()
             for i, b in enumerate(ct_bytes):
-                pt_bytes.append(b ^ key_bytes[i % len(key_bytes)])
+                pt_bytes.append(b ^ key_material[i % len(key_material)])
             
             plaintext = pt_bytes.decode('utf-8')
             if plaintext.startswith("AC2:"):
@@ -171,7 +196,8 @@ class CommitDecrypter:
         f(x) = sum(a_i * x^i)
         """
         k = len(points)
-        if k == 0: return []
+        if k == 0:
+            return []
         
         xs = [p[0] for p in points]
         ys = [p[1] for p in points]
@@ -185,7 +211,8 @@ class CommitDecrypter:
             # Calculate denominator: prod(xj - xi)
             denom = 1
             for i in range(k):
-                if i == j: continue
+                if i == j:
+                    continue
                 denom = (denom * (xj - xs[i])) % self.MOD
             
             inv_denom = pow(denom, -1, self.MOD)
@@ -195,7 +222,8 @@ class CommitDecrypter:
             current_poly = [1] 
             
             for i in range(k):
-                if i == j: continue
+                if i == j:
+                    continue
                 # Multiply current_poly by (x - xi)
                 xi = xs[i]
                 new_poly = [0] * (len(current_poly) + 1)
@@ -218,39 +246,44 @@ class CommitDecrypter:
         confirmed_thresholds: Dict[int, int] = {} 
         
         for k in range(1, self.n + 1):
-            confirmed_users = [idx for idx, t in confirmed_thresholds.items() if t <= k]
-            unknown_users = [idx for idx in range(len(self.commitments)) if idx not in confirmed_thresholds]
+            # Get all commitments that have valid (non-zero) points at level k-1
+            valid_at_level = []
+            for idx, (ct, pts, orig_idx) in enumerate(self.commitments):
+                point = pts[k-1]
+                if point != (0, 0):
+                    valid_at_level.append(idx)
             
+            # Need at least k valid points to recover polynomial of degree k-1
+            if len(valid_at_level) < k:
+                continue
+            
+            # Separate confirmed and unknown users
+            confirmed_users = [idx for idx in valid_at_level if idx in confirmed_thresholds]
+            unknown_users = [idx for idx in valid_at_level if idx not in confirmed_thresholds]
+            
+            # If we have enough confirmed users, use them to get the key
             if len(confirmed_users) >= k:
                 subset_indices = confirmed_users[:k]
                 points = []
                 for idx in subset_indices:
                     ct, pts, _ = self.commitments[idx]
-                    # pts is list of (x, y). We need the one for level k-1
                     points.append(pts[k-1])
                 
                 coeffs = self._recover_coeffs(points)
+                # Only the last coefficient a_{k-1} is needed for threshold=k users
+                key = coeffs[k-1]
                 
-                # Try to decrypt unknown users
+                # Try to decrypt unknown users with threshold=k
                 for u_idx in unknown_users:
                     ct, _, _ = self.commitments[u_idx]
-                    found_name = None
-                    found_t = None
-                    for t_candidate in range(1, k + 1):
-                        key_idx = t_candidate - 1
-                        if key_idx < len(coeffs):
-                            name = self._decrypt_name(coeffs[key_idx], ct)
-                            if name:
-                                found_name = name
-                                found_t = t_candidate
-                                break
-                    
-                    if found_name:
-                        revealed_users[u_idx] = found_name
-                        confirmed_thresholds[u_idx] = found_t 
+                    name = self._decrypt_name(key, ct)
+                    if name:
+                        revealed_users[u_idx] = name
+                        confirmed_thresholds[u_idx] = k
                 
                 continue 
             
+            # Need to try combinations of unknown users
             needed = k - len(confirmed_users)
             if needed > len(unknown_users):
                 continue
@@ -274,48 +307,35 @@ class CommitDecrypter:
                     current_points.append(pts[k-1])
                 
                 coeffs = self._recover_coeffs(current_points)
+                # Only check if these users have threshold=k
+                key = coeffs[k-1]
                 
                 all_match = True
                 newly_revealed = []
                 
                 for u_idx in unknown_subset:
                     ct, _, _ = self.commitments[u_idx]
-                    
-                    found_name = None
-                    found_t = None
-                    for t_candidate in range(1, k + 1):
-                        key_idx = t_candidate - 1
-                        if key_idx < len(coeffs):
-                            name = self._decrypt_name(coeffs[key_idx], ct)
-                            if name:
-                                found_name = name
-                                found_t = t_candidate
-                                break
-                    
-                    if found_name:
-                        newly_revealed.append((u_idx, found_name, found_t))
+                    name = self._decrypt_name(key, ct)
+                    if name:
+                        newly_revealed.append((u_idx, name, k))
                     else:
                         all_match = False
                         break
                 
                 if all_match:
-                    # Found valid set
+                    # Found valid set - all decrypt with threshold=k
                     for u_idx, name, t in newly_revealed:
                         revealed_users[u_idx] = name
                         confirmed_thresholds[u_idx] = t
                     
-                    # Check remaining
+                    # Check remaining unknown users at this level
                     remaining = [u for u in unknown_users if u not in unknown_subset]
                     for u_idx in remaining:
                         ct, _, _ = self.commitments[u_idx]
-                        for t_candidate in range(1, k + 1):
-                            key_idx = t_candidate - 1
-                            if key_idx < len(coeffs):
-                                name = self._decrypt_name(coeffs[key_idx], ct)
-                                if name:
-                                    revealed_users[u_idx] = name
-                                    confirmed_thresholds[u_idx] = t_candidate
-                                    break
+                        name = self._decrypt_name(key, ct)
+                        if name:
+                            revealed_users[u_idx] = name
+                            confirmed_thresholds[u_idx] = k
                     break
         
         return sorted(list(revealed_users.values()))

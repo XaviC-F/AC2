@@ -1,7 +1,7 @@
 from typing import Annotated, List, Tuple, Dict, Optional, Set, Any
 from pymongo import MongoClient
 from bson import ObjectId
-from fastapi import FastAPI, HTTPException, Request, Body
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
@@ -10,8 +10,6 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 import logging
 import secrets
-import hashlib
-import random
 
 # Import encrypted logic classes
 from ac2_backend.core.commit_classes import NameHolder, CommitEncrypter, CommitDecrypter
@@ -59,6 +57,14 @@ class Commitment(BaseModel):
 # Helpers
 # -----------------------------------------------------------------------------
 
+def points_to_db(points: List[Tuple[int, int]]) -> List[List[str]]:
+    """Convert points with large integers to string format for MongoDB storage"""
+    return [[str(x), str(y)] for x, y in points]
+
+def points_from_db(points_db: List[List[str]]) -> List[Tuple[int, int]]:
+    """Convert points from MongoDB string format back to tuples of integers"""
+    return [(int(x), int(y)) for x, y in points_db]
+
 def restore_encrypter(objective_doc) -> CommitEncrypter:
     invited = objective_doc.get("invited_people", [])
     nh = NameHolder(invited)
@@ -84,14 +90,14 @@ def restore_encrypter(objective_doc) -> CommitEncrypter:
         seed = "fallback_seed"
             
     # Initialize with seed
-    encrypter = CommitEncrypter(nh, n, min_count, seed=seed)
+    encrypter = CommitEncrypter(nh, min_count, seed=seed)
     
     # Reconstruct used_xs from stored commitments
     used_xs = []
     for c in objective_doc.get("commitments", []):
         for p in c.get("points", []):
-            # p is [x, y]
-            used_xs.append(p[0])
+            # p is [x, y] stored as strings
+            used_xs.append(int(p[0]))
             
     encrypter.set_used_xs(used_xs)
     
@@ -104,14 +110,15 @@ def restore_decrypter(objective_doc) -> CommitDecrypter:
     stored_commitments = objective_doc.get("commitments", [])
     for c in stored_commitments:
         if "ciphertext" in c and "points" in c:
-            pts = [tuple(p) for p in c["points"]]
+            pts = points_from_db(c["points"])
             cd.add_commitment(c["ciphertext"], pts)
             
     return cd
 
 def is_past_resolution_date(objective):
     res_date = objective.get("resolution_date")
-    if res_date is None: return False
+    if res_date is None:
+        return False
     if isinstance(res_date, str):
         res_date = datetime.fromisoformat(res_date)
     today = datetime.utcnow().date()
@@ -178,10 +185,11 @@ def commit(objective_id: str, c: Commitment):
     ciphertext, points = encrypter.commit(c.name, threshold=c.Number)
     
     # Create commitment record
+    # Convert points to strings for MongoDB (can't handle 127-bit ints)
     new_commitment = {
         "name": "HIDDEN", 
         "ciphertext": ciphertext,
-        "points": points,
+        "points": points_to_db(points),
         "committed_at": datetime.utcnow().isoformat(),
     }
     

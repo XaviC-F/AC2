@@ -1,10 +1,6 @@
 import numpy as np
 from scipy.interpolate import UnivariateSpline
-from collections import defaultdict
 from enum import Enum, auto
-import random
-import secrets
-import hashlib
 from ac2_backend.core.commit_classes import CommitEncrypter, CommitDecrypter, NameHolder
 
 
@@ -57,7 +53,7 @@ class ThresholdEncryptedModel:
         
         # Initialize Encrypter and Decrypter
         # Encryption uses min_count to set the noise floor.
-        self.encrypter = CommitEncrypter(self.name_holder, self.n_total, min_count=self.min_count)
+        self.encrypter = CommitEncrypter(self.name_holder, self.min_count)
         self.decrypter = CommitDecrypter(self.n_total)
         
         # Map to store current commitments (name -> threshold)
