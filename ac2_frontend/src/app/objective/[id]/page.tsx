@@ -1,4 +1,6 @@
-import { notFound } from 'next/navigation';
+'use client'
+
+import { notFound, useParams } from 'next/navigation';
 import { getObjectiveById } from '../data';
 
 function formatTimeLeft(resolutionDate: string): string {
@@ -13,9 +15,17 @@ function formatTimeLeft(resolutionDate: string): string {
   return `${days}d ${hours}h ${minutes}m remaining`;
 }
 
-export default function ObjectivePage({ params }: { params: { id: string } }) {
-  const obj = getObjectiveById(params.id);
-  if (!obj || new Date(obj.resolutionDate) <= new Date()) {
+export default function ObjectivePage() {
+  const { id } = useParams();
+  let objectiveId = "";
+  try {
+    objectiveId = id as string;
+  } catch (_) {
+    objectiveId = "";
+  }
+  console.log(id);
+  const obj = getObjectiveById(objectiveId);
+  if (!obj) {
     return notFound();
   }
   return (
