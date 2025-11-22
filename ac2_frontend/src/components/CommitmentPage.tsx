@@ -20,6 +20,7 @@ export default function CommitmentPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [name, setName] = useState('');
+  const [queryParamObjectiveId, setQueryParamObjectiveId] = useState('');
   const [commitNumber, setCommitNumber] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
@@ -29,6 +30,9 @@ export default function CommitmentPage() {
   const [isPublished, setIsPublished] = useState(false);
 
   const objectiveId = searchParams.get('objective_id');
+  if (objectiveId) {
+    setQueryParamObjectiveId(objectiveId);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -38,8 +42,7 @@ export default function CommitmentPage() {
         setIsLoadingObjective(true);
         setObjectiveError("");
 
-        const res = await fetch(`${API_URL}objective/${objectiveId}`, 
-          {method: "GET"});
+        const res = await fetch(`${API_URL}objective/${queryParamObjectiveId}`, {method: "GET"});
         if (!res.ok) throw new Error(`Failed to load objective (${res.status})`);
 
         const data = await res.json();
@@ -57,7 +60,7 @@ export default function CommitmentPage() {
 
     loadObjective();
     return () => { cancelled = true; };
-  }, [objectiveId]);
+  }, [queryParamObjectiveId]);
 
   const handleCommitment = async (choice: 'commit' | 'decline') => {
     setSelectedChoice(choice);
@@ -94,8 +97,8 @@ export default function CommitmentPage() {
         number: commitNumber.trim(),
       };
 
-      if (objective !== null && objective.id !== null) {
-        const res = await fetch(`${API_URL}commit?objective_id=${objectiveId}`, {
+      if (queryParamObjectiveId) {
+        const res = await fetch(`${API_URL}commit?objective_id=${queryParamObjectiveId}`, {
           method: "PATCH",
           headers: {
           "Content-Type": "application/json",
@@ -207,7 +210,7 @@ export default function CommitmentPage() {
               Commitments Closed
             </h1>
             <p className="text-white/70 leading-relaxed mb-6">
-              This objective has already been published, so we can't accept new commitments.
+              This objective has already been published, so we can&apos;t accept new commitments.
             </p>
             <Link 
               href="/objective" 
@@ -357,6 +360,23 @@ export default function CommitmentPage() {
             <h3 className="text-xl sm:text-2xl font-light tracking-wide text-white mb-6 sm:mb-8">Your Commitment</h3>
 
             <div className="space-y-6 sm:space-y-8">
+              {/* Commitment ID Field */}
+              {queryParamObjectiveId ? null : (
+                <div className="group">
+                <label className="block mb-3 text-xs uppercase tracking-[0.15em] text-white/60 mb-2">
+                  Commitment ID <span className="text-white/40 normal-case font-light">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="objective_id"
+                  value={name}
+                  onChange={(e) => setQueryParamObjectiveId(e.target.value)}
+                  placeholder="Enter your full name"
+                  className="w-full px-4 py-3 bg-white/5 border border-white/20 text-white placeholder-white/30 focus:border-white/40 focus:outline-none focus:bg-white/10 transition-all font-light"
+                  required
+                />
+              </div>)}
+
               {/* Name Field */}
               <div className="group">
                 <label htmlFor="name" className="block mb-3 text-xs uppercase tracking-[0.15em] text-white/60 mb-2">
