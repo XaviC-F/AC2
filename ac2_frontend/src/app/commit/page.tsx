@@ -1,9 +1,13 @@
 'use client'
 
-import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { Lock, Target, CheckCircle, XCircle, Upload, X } from 'lucide-react';
+import { API_URL } from '@/config/config';
 
 export default function CommitmentPage() {
+  const searchParams = useSearchParams();
+
   const [selectedChoice, setSelectedChoice] = useState(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -11,19 +15,41 @@ export default function CommitmentPage() {
   const [commitNumber, setCommitNumber] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState([]);
 
-  // Mock objective data - in real app, this would come from props/API
-  const objective = {
-    id: "obj_123",
-    title: "Unionize Our Workplace",
-    description: "Let's organize a union to collectively bargain for better working conditions, fair wages, and job security. This is a confidential commitment - your response will remain anonymous.",
-    threshold: 20,
-    thresholdType: "percentage",
-    totalEligible: 150,
-    currentCommitments: 18,
-    deadline: "2025-12-31",
-    createdBy: "Anonymous Organizer",
-    category: "Labor Rights"
-  };
+  const [objective, setObjective] = useState(null);
+  const [isLoadingObjective, setIsLoadingObjective] = useState(true);
+  const [objectiveError, setObjectiveError] = useState("");
+  const [isPublished, setIsPublished] = useState(false);
+
+  const objectiveId = searchParams.get('objective_id');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadObjective() {
+      try {
+        setIsLoadingObjective(true);
+        setObjectiveError("");
+
+        const res = await fetch(`${API_URL}objective/${objectiveId}`, 
+          {method: "GET"});
+        if (!res.ok) throw new Error(`Failed to load objective (${res.status})`);
+
+        const data = await res.json();
+        if (cancelled) return;
+
+        setObjective(data);
+        setIsPublished(data.published);
+
+      } catch (e) {
+        if (!cancelled) setObjectiveError(e.message || "Failed to load objective");
+      } finally {
+        if (!cancelled) setIsLoadingObjective(false);
+      }
+    }
+
+    loadObjective();
+    return () => { cancelled = true; };
+  }, []);
 
   const handleCommitment = async (choice) => {
     setSelectedChoice(choice);
@@ -41,13 +67,82 @@ export default function CommitmentPage() {
   const isCommitNumberValid = /^\d+$/.test(commitNumber.trim()) && Number(commitNumber) >= 1 && Number(commitNumber) <= 100;
 
   const handleSubmit = async () => {
-    if (!selectedChoice || !name.trim() || !commitNumber.trim() || !isCommitNumberValid) return;
+    if (
+      isPublished ||
+      !selectedChoice ||
+      !name.trim() ||
+      !commitNumber.trim() ||
+      !isCommitNumberValid
+    ) return;
 
-    setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsSubmitting(false);
-    setIsSubmitted(true);
+    try {
+      setIsSubmitting(true);
+
+      const data = {
+        name: name.trim(),
+        number: commitNumber.trim(),
+      };
+
+      const res = await fetch(`${API_URL}commit?objective_id=${objective.id}`, {
+        method: "PATCH",
+        headers: {
+        "Content-Type": "application/json",
+      },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) throw new Error("Commit failed");
+
+      const json = await res.json(); 
+
+      if (
+        json.message.includes("Not invited. Ignored.")
+      ) {
+        throw new Error(json);
+      }
+
+      setIsSubmitted(true);
+
+    } catch (e) {
+      alert(e.message || "Something went wrong");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (isLoadingObjective) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-slate-600">
+        Checking objective status...
+      </div>
+    );
+  }
+
+  if (objectiveError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-red-600">
+        {objectiveError}
+      </div>
+    );
+  }
+
+  if (isPublished && !isSubmitted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+        <div className="max-w-xl w-full bg-white rounded-2xl shadow-xl p-8 text-center">
+          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Lock className="w-8 h-8 text-slate-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900 mb-2">
+            Commitments Closed
+          </h1>
+          <p className="text-slate-600">
+            This objective has already been published, so we can’t accept new commitments.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (isSubmitted) {
     return (

@@ -31,7 +31,6 @@ class Objective(BaseModel):
     resolution_strategy: Optional[ResolutionStrategy] = ResolutionStrategy.ASAP
     minimum_percentage: Optional[int]  # ignored
 
-
 @app.post("/objective")
 def create_objective(
     o: Objective
@@ -86,19 +85,23 @@ def compute_current_equilibrium(objective):
     )
     return threshold_model.resolve()
 
+class Commitment(BaseModel):
+    
+    name: str
+    Number: int
 
-@app.patch("/commit")
-def commit(objective_id, name, number):
-
+@app.patch("/commit/{objective_id}")
+def commit(objective_id: str, c: Commitment):
+    
     objective = objectives_col.find_one({"_id": ObjectId(objective_id)})
     if objective is None:
-        return "Objective not found."
+        return {"message":"Objective not found."}
     elif is_past_resolution_date(objective):
-        return "The resolution date has been passed."
+        return {"message":"The resolution date has been passed."}
 
     invited_names = objective.get("invited_people", [])
-    if name not in invited_names:
-        return "Not invited. Ignored."
+    if c.name not in invited_names:
+        return {"message": "Not invited. Ignored"}
 
     else:
         objectives_col.update_one(
@@ -106,9 +109,9 @@ def commit(objective_id, name, number):
             {
                 "$push": {
                     "commitments": {
-                        "name": name,
-                        "number": number,
-                        "committed_at": datetime.utcnow(),
+                        "name": c.name,
+                        "number": c.number,
+                        "committed_at": datetime.utcnow().isoformat(),
                     }
                 }
             },
@@ -129,7 +132,7 @@ def commit(objective_id, name, number):
                 },
             )
 
-        return "Commitment stored."
+        return {"message": "Commitment stored."}
     
 @app.get("/objective/{objective_id}")    
 def serve_view (objective_id):
@@ -139,6 +142,7 @@ def serve_view (objective_id):
             "title": objective.get("title"),
             "description": objective.get("description"),
             "resolution_date": objective.get("resolution_date"),
+            "published": objective.get("published"),
         }
     else:
         return {
@@ -146,6 +150,7 @@ def serve_view (objective_id):
             "description": objective.get("description"),
             "resolution_date": objective.get("resolution_date"),
             "commited_people": objective.get("commited_people"),
+            "published": objective.get("published"),
         }
 
 
