@@ -38,6 +38,11 @@ export default function CommitmentPage() {
     let cancelled = false;
 
     async function loadObjective() {
+      if (!queryParamObjectiveId) {
+        setIsLoadingObjective(false);
+        setObjectiveError("");
+        return;
+      }
       try {
         setIsLoadingObjective(true);
         setObjectiveError("");
@@ -333,7 +338,7 @@ export default function CommitmentPage() {
           </div>
 
           {/* Objective Details Card */}
-          <div className="border border-white/20 bg-white/5 p-6 sm:p-8 lg:p-12 backdrop-blur-sm mb-6 sm:mb-8">
+          {queryParamObjectiveId && !isLoadingObjective ? (<div className="border border-white/20 bg-white/5 p-6 sm:p-8 lg:p-12 backdrop-blur-sm mb-6 sm:mb-8">
             <div className="flex items-start gap-4 mb-6">
               <div className="w-12 h-12 border border-white/20 bg-white/5 rounded-xl flex items-center justify-center flex-shrink-0">
                 <Target className="w-6 h-6 text-white/60" />
@@ -353,25 +358,25 @@ export default function CommitmentPage() {
                 {objective?.resolutionDate ? new Date(objective.resolutionDate).toLocaleDateString() : ''}
               </div>
             </div>
-          </div>
+          </div>) : null}
 
           {/* Commitment Form Card */}
           <div className="border border-white/20 bg-white/5 p-6 sm:p-8 lg:p-12 backdrop-blur-sm">
             <h3 className="text-xl sm:text-2xl font-light tracking-wide text-white mb-6 sm:mb-8">Your Commitment</h3>
 
             <div className="space-y-6 sm:space-y-8">
-              {/* Commitment ID Field */}
+              {/* Objective ID Field */}
               {queryParamObjectiveId ? null : (
                 <div className="group">
                 <label className="block mb-3 text-xs uppercase tracking-[0.15em] text-white/60 mb-2">
-                  Commitment ID <span className="text-white/40 normal-case font-light">*</span>
+                  Objective ID <span className="text-white/40 normal-case font-light">*</span>
                 </label>
                 <input
                   type="text"
                   id="objective_id"
                   value={name}
                   onChange={(e) => setQueryParamObjectiveId(e.target.value)}
-                  placeholder="Enter your full name"
+                  placeholder="Enter the ID of the objective you want to commit to"
                   className="w-full px-4 py-3 bg-white/5 border border-white/20 text-white placeholder-white/30 focus:border-white/40 focus:outline-none focus:bg-white/10 transition-all font-light"
                   required
                 />
