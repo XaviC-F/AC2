@@ -86,6 +86,7 @@ export default function CommitmentPage() {
 
   const handleCommitment = async (choice: 'commit' | 'decline') => {
     setSelectedChoice(choice);
+    if (choice === 'decline') setCommitNumber('');
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -103,23 +104,32 @@ export default function CommitmentPage() {
   const trimmedName = name.trim();
   const isNameTooLong = trimmedName.length > MAX_NAME_LENGTH;
   const isNameValid = trimmedName.length > 0 && !isNameTooLong;
-  const isCommitNumberValid = /^\d+$/.test(commitNumber.trim()) && Number(commitNumber) >= 2;
+  const commitNumberTrimmed = commitNumber.trim();
+  const isCommitNumberRequired = selectedChoice !== 'decline';
+  const isCommitNumberValid =
+    !isCommitNumberRequired || (/^\d+$/.test(commitNumberTrimmed) && Number(commitNumberTrimmed) >= 2);
 
   const handleSubmit = async () => {
     if (
       isPublished ||
       !selectedChoice ||
       !isNameValid ||
-      !commitNumber.trim() ||
-      !isCommitNumberValid
+      isSubmitting
     ) return;
+
+    if (selectedChoice === 'decline') {
+      setIsSubmitted(true);
+      return;
+    }
+
+    if (!commitNumberTrimmed || !isCommitNumberValid) return;
 
     try {
       setIsSubmitting(true);
 
       const data = {
         name: trimmedName,
-        number: commitNumber.trim(),
+        number: commitNumberTrimmed,
       };
 
       if (queryParamObjectiveId) {
@@ -268,7 +278,9 @@ export default function CommitmentPage() {
               <div className="w-20 h-20 border border-white/20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle className="w-12 h-12 text-white/80" />
               </div>
-              <h1 className="text-3xl sm:text-4xl font-light tracking-wide text-white mb-4">Commitment Recorded</h1>
+              <h1 className="text-3xl sm:text-4xl font-light tracking-wide text-white mb-4">
+                {selectedChoice === 'commit' ? 'Commitment Recorded' : 'Declining Recorded'}
+              </h1>
               <p className="text-white/70 text-lg leading-relaxed">
                 Your anonymous {selectedChoice === 'commit' ? 'commitment' : 'response'} has been securely recorded
               </p>
@@ -434,15 +446,18 @@ export default function CommitmentPage() {
                     if (/^[0-9]*$/.test(v)) setCommitNumber(v);
                   }}
                   placeholder="Enter a number of people"
+                  disabled={selectedChoice === 'decline'}
                   className={`w-full px-4 py-3 bg-white/5 border text-white placeholder-white/30 focus:outline-none focus:bg-white/10 transition-all font-light ${
-                    commitNumber.length === 0 || isCommitNumberValid
-                      ? 'border-white/20 focus:border-white/40'
-                      : 'border-red-500/50 focus:border-red-500'
+                    selectedChoice === 'decline'
+                      ? 'border-white/10 cursor-not-allowed opacity-60'
+                      : commitNumber.length === 0 || isCommitNumberValid
+                        ? 'border-white/20 focus:border-white/40'
+                        : 'border-red-500/50 focus:border-red-500'
                   }`}
                   required
                 />
                 {commitNumber.length > 0 && !isCommitNumberValid && (
-                  <p className="text-sm text-red-500/80 mt-2">Please enter a number between 1 and 100.</p>
+                  <p className="text-sm text-red-500/80 mt-2">Please enter a number above 1.</p>
                 )}
               </div>
 
@@ -560,12 +575,13 @@ export default function CommitmentPage() {
               <div className="pt-4 sm:pt-6 border-t border-white/10">
                 <button
                   onClick={handleSubmit}
-                  disabled={!selectedChoice || !isNameValid || !commitNumber.trim() || !isCommitNumberValid || isSubmitting}
-                  className={`group inline-flex items-center justify-center gap-2 w-full px-6 py-3 sm:px-8 sm:py-4 bg-white text-black font-light text-xs sm:text-sm uppercase tracking-[0.15em] transition hover:bg-white/90 disabled:opacity-30 disabled:cursor-not-allowed ${
-                    selectedChoice && isNameValid && commitNumber.trim() && isCommitNumberValid && !isSubmitting
-                      ? ''
-                      : ''
-                  }`}
+                  disabled={
+                    !selectedChoice ||
+                    !isNameValid ||
+                    isSubmitting ||
+                    (selectedChoice === 'commit' && (!commitNumberTrimmed || !isCommitNumberValid))
+                  }
+                  className="group inline-flex items-center justify-center gap-2 w-full px-6 py-3 sm:px-8 sm:py-4 bg-white text-black font-light text-xs sm:text-sm uppercase tracking-[0.15em] transition hover:bg-white/90 disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? 'Submitting Securely...' : 'Submit My Commitment'}
                   {!isSubmitting && <ArrowRight className="w-4 h-4" />}

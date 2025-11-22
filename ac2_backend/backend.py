@@ -139,6 +139,8 @@ def commit(objective_id: str, c: Commitment):
                     "$set": {
                         "published": True,
                         "committed_people": current_equilibrium,
+                        # Duplicate for frontend naming convention
+                        "committers": current_equilibrium,
                         "modified_at": datetime.utcnow().isoformat(),
                     }
                 },
@@ -150,19 +152,29 @@ def commit(objective_id: str, c: Commitment):
 @app.get("/objective/{objective_id}")
 def serve_view(objective_id):
     objective = objectives_col.find_one({"_id": ObjectId(objective_id)})
+    if objective is None:
+        raise HTTPException(status_code=404, detail="Objective not found")
+
+    # Normalize field names for the frontend while keeping originals for compatibility
+    resolution_date = objective.get("resolution_date")
+    committers = objective.get("committers") or objective.get("committed_people")
+
     if not objective.get("published"):
         return {
             "title": objective.get("title"),
             "description": objective.get("description"),
-            "resolution_date": objective.get("resolution_date"),
+            "resolution_date": resolution_date,
+            "resolutionDate": resolution_date,
             "published": objective.get("published"),
         }
     else:
         return {
             "title": objective.get("title"),
             "description": objective.get("description"),
-            "resolution_date": objective.get("resolution_date"),
-            "committed_people": objective.get("committed_people"),
+            "resolution_date": resolution_date,
+            "resolutionDate": resolution_date,
+            "committed_people": committers,
+            "committers": committers,
             "published": objective.get("published"),
         }
 
@@ -178,7 +190,9 @@ def get_most_recently_published(limit: int = 10):
                 "title": o.get("title"),
                 "description": o.get("description"),
                 "resolution_date": o.get("resolution_date"),
+                "resolutionDate": o.get("resolution_date"),
                 "committed_people": o.get("committed_people"),
+                "committers": o.get("committers") or o.get("committed_people"),
             },
             objectives,
         )
