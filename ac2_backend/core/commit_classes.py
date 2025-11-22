@@ -241,9 +241,19 @@ class CommitDecrypter:
                 
         return final_coeffs
 
-    def decrypt(self) -> List[str]:
+    def decrypt_with_details(self) -> Tuple[List[str], Dict[int, Dict]]:
+        """
+        Returns (revealed_names, decryption_details)
+        where decryption_details maps commitment_index -> {
+            'name': str,
+            'threshold': int,
+            'coefficients': List[int],  # The polynomial coefficients used
+            'level': int  # The k value where it was decrypted
+        }
+        """
         revealed_users: Dict[int, str] = {}
-        confirmed_thresholds: Dict[int, int] = {} 
+        confirmed_thresholds: Dict[int, int] = {}
+        decryption_details: Dict[int, Dict] = {}
         
         for k in range(1, self.n + 1):
             # Get all commitments that have valid (non-zero) points at level k-1
@@ -280,6 +290,12 @@ class CommitDecrypter:
                     if name:
                         revealed_users[u_idx] = name
                         confirmed_thresholds[u_idx] = k
+                        decryption_details[u_idx] = {
+                            'name': name,
+                            'threshold': k,
+                            'coefficients': coeffs,
+                            'level': k
+                        }
                 
                 continue 
             
@@ -307,17 +323,31 @@ class CommitDecrypter:
                     current_points.append(pts[k-1])
                 
                 coeffs = self._recover_coeffs(current_points)
-                # Only check if these users have threshold=k
-                key = coeffs[k-1]
                 
+                # Try to decrypt each unknown user with their appropriate coefficient
+                # based on their threshold (which level they first have data at)
                 all_match = True
                 newly_revealed = []
                 
                 for u_idx in unknown_subset:
-                    ct, _, _ = self.commitments[u_idx]
+                    ct, pts, _ = self.commitments[u_idx]
+                    
+                    # Determine this user's threshold by finding first non-zero level
+                    user_threshold = None
+                    for level_idx in range(len(pts)):
+                        if pts[level_idx] != (0, 0):
+                            user_threshold = level_idx + 1  # threshold is 1-indexed
+                            break
+                    
+                    if user_threshold is None or user_threshold > len(coeffs):
+                        all_match = False
+                        break
+                    
+                    # Use the coefficient corresponding to this user's threshold
+                    key = coeffs[user_threshold - 1]
                     name = self._decrypt_name(key, ct)
                     if name:
-                        newly_revealed.append((u_idx, name, k))
+                        newly_revealed.append((u_idx, name, user_threshold))
                     else:
                         all_match = False
                         break
@@ -327,6 +357,12 @@ class CommitDecrypter:
                     for u_idx, name, t in newly_revealed:
                         revealed_users[u_idx] = name
                         confirmed_thresholds[u_idx] = t
+                        decryption_details[u_idx] = {
+                            'name': name,
+                            'threshold': t,
+                            'coefficients': coeffs,
+                            'level': k
+                        }
                     
                     # Check remaining unknown users at this level
                     remaining = [u for u in unknown_users if u not in unknown_subset]
@@ -336,6 +372,17 @@ class CommitDecrypter:
                         if name:
                             revealed_users[u_idx] = name
                             confirmed_thresholds[u_idx] = k
+                            decryption_details[u_idx] = {
+                                'name': name,
+                                'threshold': k,
+                                'coefficients': coeffs,
+                                'level': k
+                            }
                     break
         
-        return sorted(list(revealed_users.values()))
+        return sorted(list(revealed_users.values())), decryption_details
+
+    def decrypt(self) -> List[str]:
+        """Backward compatible method that just returns names."""
+        names, _ = self.decrypt_with_details()
+        return names
