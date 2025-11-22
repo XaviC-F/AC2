@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Lock, Users, Target, CheckCircle, XCircle, Upload, X } from 'lucide-react';
+import { Lock, Target, CheckCircle, XCircle, Upload, X } from 'lucide-react';
 
 export default function CommitmentPage() {
   const [selectedChoice, setSelectedChoice] = useState(null);
