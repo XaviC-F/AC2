@@ -29,7 +29,7 @@ export default function CreateObjectivePage() {
       title: title,
       description: description,
       invited_names: users,
-      resolution_date: resolutionDate,
+      resolution_date: new Date(resolutionDate).toISOString(),
       resolution_strategy: strategy || 'asap',
       minimum_percentage: optInPercent ? Number(optInPercent) : null,
     };
@@ -94,7 +94,7 @@ export default function CreateObjectivePage() {
               type="date"
               required
               value={resolutionDate}
-              onChange={(e) => setResolutionDate(e.target.value ? new Date(e.target.value).toISOString() : "")}
+              onChange={(e) => setResolutionDate(e.target.value)}
               className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             />
           </div>
