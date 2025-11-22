@@ -2,6 +2,8 @@
 
 import { notFound, useParams } from 'next/navigation';
 import { getObjectiveById } from '../data';
+import { useEffect } from 'react';
+import { API_URL } from '@/config/config';
 
 function formatTimeLeft(resolutionDate: string): string {
   const now = new Date();
@@ -16,6 +18,19 @@ function formatTimeLeft(resolutionDate: string): string {
 }
 
 export default function ObjectivePage() {
+  const [selectedChoice, setSelectedChoice] = useState(null);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [name, setName] = useState('');
+  const [commitNumber, setCommitNumber] = useState('');
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+
+  const [objective, setObjective] = useState(null);
+  const [isLoadingObjective, setIsLoadingObjective] = useState(true);
+  const [objectiveError, setObjectiveError] = useState("");
+  const [isPublished, setIsPublished] = useState(false);
+
+
   const { id } = useParams();
   let objectiveId = "";
   try {
@@ -23,8 +38,37 @@ export default function ObjectivePage() {
   } catch (_) {
     objectiveId = "";
   }
-  console.log(id);
+
   const obj = getObjectiveById(objectiveId);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadObjective() {
+      try {
+        setIsLoadingObjective(true);
+        setObjectiveError("");
+
+        const res = await fetch(`${API_URL}objective/${objectiveId}`,
+          {method: "GET"});
+        if (!res.ok) throw new Error(`Failed to load objective (${res.status})`);
+
+        const data = await res.json();
+        if (cancelled) return;
+
+        setObjective(data);
+        setIsPublished(data.published);
+      } catch (e) {
+        if (!cancelled) setObjectiveError(e.message || "Failed to load objective");
+      } finally {
+        if (!cancelled) setIsLoadingObjective(false);
+      }
+    }
+
+    loadObjective();
+    return () => { cancelled = true; };
+  }, [objectiveId]);
+
   if (!obj) {
     return notFound();
   }

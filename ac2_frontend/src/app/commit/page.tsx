@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Lock, Target, CheckCircle, XCircle, Upload, X } from 'lucide-react';
 import { API_URL } from '@/config/config';
+import { Objective } from '../objective/data';
 
 export default function CommitmentPage() {
   const searchParams = useSearchParams();
@@ -15,7 +16,7 @@ export default function CommitmentPage() {
   const [commitNumber, setCommitNumber] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState([]);
 
-  const [objective, setObjective] = useState(null);
+  const [objective, setObjective] = useState<Objective | null>(null);
   const [isLoadingObjective, setIsLoadingObjective] = useState(true);
   const [objectiveError, setObjectiveError] = useState("");
   const [isPublished, setIsPublished] = useState(false);
@@ -40,8 +41,10 @@ export default function CommitmentPage() {
         setObjective(data);
         setIsPublished(data.published);
 
-      } catch (e) {
-        if (!cancelled) setObjectiveError(e.message || "Failed to load objective");
+      } catch (e: unknown) {
+        let message = "Failed to load objective";
+        if (e instanceof Error) message = e.message
+        if (!cancelled) setObjectiveError(message);
       } finally {
         if (!cancelled) setIsLoadingObjective(false);
       }
@@ -49,18 +52,21 @@ export default function CommitmentPage() {
 
     loadObjective();
     return () => { cancelled = true; };
-  }, []);
+  }, [objectiveId]);
 
-  const handleCommitment = async (choice) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleCommitment = async (choice: any) => {
     setSelectedChoice(choice);
   };
 
-  const handleFileUpload = (e) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleFileUpload = (e: any) => {
     const files = Array.from(e.target.files || []);
     setUploadedFiles([...uploadedFiles, ...files]);
   };
 
-  const removeFile = (index) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const removeFile = (index: any) => {
     setUploadedFiles(uploadedFiles.filter((_, i) => i !== index));
   };
 
@@ -83,26 +89,27 @@ export default function CommitmentPage() {
         number: commitNumber.trim(),
       };
 
-      const res = await fetch(`${API_URL}commit?objective_id=${objectiveId}`, {
-        method: "PATCH",
-        headers: {
-        "Content-Type": "application/json",
-      },
-        body: JSON.stringify(data),
-      });
+      if (objective !== null && objective.id !== null) {
+        const res = await fetch(`${API_URL}commit?objective_id=${objectiveId}`, {
+          method: "PATCH",
+          headers: {
+          "Content-Type": "application/json",
+        },
+          body: JSON.stringify(data),
+        });
 
-      if (!res.ok) throw new Error("Commit failed");
+        if (!res.ok) throw new Error("Commit failed");
 
-      const json = await res.json(); 
+        const json = await res.json();
 
-      if (
-        json.message.includes("Not invited. Ignored.")
-      ) {
-        throw new Error(json);
+        if (
+          json.message.includes("Not invited. Ignored.")
+        ) {
+          throw new Error(json);
+        }
+
+        setIsSubmitted(true);
       }
-
-      setIsSubmitted(true);
-
     } catch (e) {
       alert(e.message || "Something went wrong");
     } finally {
@@ -216,9 +223,8 @@ export default function CommitmentPage() {
                 <Target className="w-6 h-6 text-blue-600" />
               </div>
               <div className="flex-1">
-                <div className="text-xs text-slate-500 uppercase font-semibold mb-1">{objective.category}</div>
-                <h2 className="text-2xl font-bold text-slate-900 mb-3">{objective.title}</h2>
-                <p className="text-slate-700 leading-relaxed">{objective.description}</p>
+                <h2 className="text-2xl font-bold text-slate-900 mb-3">{objective?.title}</h2>
+                <p className="text-slate-700 leading-relaxed">{objective?.description}</p>
               </div>
             </div>
 
@@ -226,12 +232,8 @@ export default function CommitmentPage() {
             <div className="bg-slate-50 rounded-xl p-6 mt-6">
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <div className="text-sm text-slate-600 mb-1">Threshold Required</div>
-                  <div className="text-2xl font-bold text-slate-900">{objective.threshold}%</div>
-                </div>
-                <div>
                   <div className="text-sm text-slate-600 mb-1">Deadline</div>
-                  <div className="text-lg font-bold text-slate-900">{new Date(objective.deadline).toLocaleDateString()}</div>
+                  <div className="text-lg font-bold text-slate-900">{new Date(objective?.resolutionDate ?? "").toLocaleDateString()}</div>
                 </div>
               </div>
             </div>
