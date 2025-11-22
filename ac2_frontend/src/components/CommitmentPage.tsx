@@ -84,7 +84,7 @@ export default function CommitmentPage() {
     return () => { cancelled = true; };
   }, [queryParamObjectiveId]);
 
-  const handleCommitment = (choice: 'commit' | 'decline') => {
+  const handleCommitment = async (choice: 'commit' | 'decline') => {
     setSelectedChoice(choice);
     if (choice === 'decline') setCommitNumber('');
   };
