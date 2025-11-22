@@ -19,6 +19,10 @@ function formatTimeLeft(resolutionDate: string): string {
 
 export default function ObjectivePage() {
   const [obj, setObjective] = useState<Objective | null>(null);
+
+  const [loading, setLoading] = useState(true);
+
+
   const { id } = useParams();
   let objectiveId = "";
   try {
@@ -26,32 +30,31 @@ export default function ObjectivePage() {
   } catch (_) {
     objectiveId = "";
   }
+  console.log(objectiveId);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function loadObjective() {
-      try {
-        const res = await fetch(`${API_URL}objective/${objectiveId}`,
-          {method: "GET"});
-        if (!res.ok) throw new Error(`Failed to load objective (${res.status})`);
-
-        const data = await res.json();
-        if (cancelled) return;
-
-        setObjective(data);
-      } catch (e) {
-        alert(e instanceof Error ? e.message : String(e) || "Failed to load objective");
+  let cancelled = false;
+  async function loadObjective() {
+    try {
+      const res = await fetch(`${API_URL}objective/${objectiveId}`);
+      if (cancelled) return;
+      if (res.status === 404) {
+        setObjective(null);
+        return;
       }
+      if (!res.ok) throw new Error(`Failed to load objective (${res.status})`);
+      setObjective(await res.json());
+    } finally {
+      if (!cancelled) setLoading(false);
     }
-
-    loadObjective();
-    return () => { cancelled = true; };
-  }, [objectiveId]);
-
-  if (!obj) {
-    return notFound();
   }
+  loadObjective();
+  return () => { cancelled = true; };
+}, [objectiveId]);
+
+if (loading) return <div>Loading…</div>;
+if (obj === null) return notFound();
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 max-w-xl w-full">
