@@ -36,7 +36,7 @@ def create_objective(
         "invited_people": invited_names,  # list of strings
         # empty list at start
         "commitments": [],
-        "published": False,
+        "published": published,
         "modified_at": datetime.utcnow().isoformat(),
     }
 
@@ -61,14 +61,15 @@ def is_past_resolution_date(objective):
 
 
 def compute_current_equilibrium(objective):
+    commitments = objective.get("commitments", [])
     threshold_model = ThresholdModel(
         list(
             map(
-                lambda o: (
-                    o.get("commitments").get("name"),
-                    o.get("commitments").get("number"),
+                lambda c: (
+                    c.get("name"),
+                    c.get("number"),
                 ),
-                objectives,
+                commitments,
             )
         ),
         ResolutionStrategy.OPTIMISTIC,
@@ -142,15 +143,15 @@ def serve_view(objective_id):
 @app.get("/recently_published")
 def get_most_recently_published(limit: int = 10):
     objectives = (
-        objectives_col.find({"published": True}).sort("modified_at").limit(limit)
+        objectives_col.find({"published": True}).sort("modified_at", -1).limit(limit)
     )
     return list(
         map(
             lambda o: {
-                "title": objective.get("title"),
-                "description": objective.get("description"),
-                "resolution_date": objective.get("resolution_date"),
-                "commited_people": objective.get("commited_people"),
+                "title": o.get("title"),
+                "description": o.get("description"),
+                "resolution_date": o.get("resolution_date"),
+                "commited_people": o.get("commited_people"),
             },
             objectives,
         )
