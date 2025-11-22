@@ -15,6 +15,20 @@ interface ObjectiveWithDetails extends Objective {
   deadline?: string;
 }
 
+type ObjectiveApiResponse = ObjectiveWithDetails & {
+  resolution_date?: string;
+};
+
+function normalizeObjective(data: ObjectiveApiResponse): ObjectiveWithDetails {
+  const resolutionDate =
+    data.resolutionDate || data.resolution_date || data.deadline || '';
+
+  return {
+    ...data,
+    resolutionDate,
+  };
+}
+
 export default function CommitmentPage() {
   const searchParams = useSearchParams();
 
@@ -55,8 +69,9 @@ export default function CommitmentPage() {
         const data = await res.json();
         if (cancelled) return;
 
-        setObjective(data);
-        setIsPublished(data.published);
+        const normalized = normalizeObjective(data);
+        setObjective(normalized);
+        setIsPublished(normalized.published);
 
       } catch (e) {
         if (!cancelled) setObjectiveError((e instanceof Error ? e.message : String(e)) || "Failed to load objective");
