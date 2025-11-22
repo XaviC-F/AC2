@@ -88,9 +88,9 @@ def compute_current_equilibrium(objective):
 class Commitment(BaseModel):
     
     name: str
-    Number: int
+    number: int
 
-@app.patch("/commit/{objective_id}")
+@app.patch("/commit")
 def commit(objective_id: str, c: Commitment):
     
     objective = objectives_col.find_one({"_id": ObjectId(objective_id)})

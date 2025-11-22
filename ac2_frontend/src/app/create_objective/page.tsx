@@ -41,7 +41,7 @@ export default function CreateObjectivePage() {
       },
       body: JSON.stringify(data),
     }).then(r => r.json()).catch(err => {alert(`Request failed: ${err}`); });
-    // router.push(`/objective/${response.objective_id}`)
+    router.push(`/objective/${response.objective_id}`)
   }
 
   return (

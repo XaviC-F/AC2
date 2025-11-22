@@ -83,7 +83,7 @@ export default function CommitmentPage() {
         number: commitNumber.trim(),
       };
 
-      const res = await fetch(`${API_URL}commit?objective_id=${objective.id}`, {
+      const res = await fetch(`${API_URL}commit?objective_id=${objectiveId}`, {
         method: "PATCH",
         headers: {
         "Content-Type": "application/json",
