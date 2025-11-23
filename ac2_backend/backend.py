@@ -116,9 +116,14 @@ class Objective(BaseModel):
     description: str
     eligible_names: List[NameStr]
     resolution_date: datetime
+<<<<<<< HEAD
     resolution_strategy: Optional[str] = "DEADLINE"
     minimum_number: Optional[int] = 1
     visibility: Optional[str] = "private"
+=======
+    resolution_strategy: Optional[ResolutionStrategy] = ResolutionStrategy.ASAP
+    minimum_commitments: Optional[int]  # ignored
+>>>>>>> 2d41668 (use minimum commitments)
 
 class Commitment(BaseModel):
     name: NameStr
@@ -230,8 +235,8 @@ def create_objective(o: Objective):
         "eligible_people": o.eligible_names,
         "invited_people": o.eligible_names, # Backward compatibility
         "resolution_strategy": o.resolution_strategy,
-        "minimum_number": o.minimum_number,
         "visibility": o.visibility,
+        "minimum_commitments": o.minimum_commitments,
         "commitments": [],
         "closed": False,
         "modified_at": datetime.utcnow().isoformat(),
@@ -377,9 +382,11 @@ def commit(objective_id: str, c: Commitment):
         if mark_as_closed:
              # Mark commitments as decrypted and add coefficients
             updated_commitments = []
+            number_revealed = 0
             for idx, commitment in enumerate(objective.get("commitments", [])):
                 updated_commitment = dict(commitment)
                 if idx in decryption_details:
+                    number_revealed += 1
                     detail = decryption_details[idx]
                     updated_commitment["decrypted"] = True
                     updated_commitment["decrypted_name"] = detail["name"]
@@ -390,18 +397,18 @@ def commit(objective_id: str, c: Commitment):
                 else:
                     updated_commitment["decrypted"] = False
                 updated_commitments.append(updated_commitment)
+            if number_revealed >= objective.minimum_commitments:
 
-            objectives_col.update_one(
-                {"_id": ObjectId(objective_id)},
-                {
-                    "$set": {
-                        "closed": True,
-                        "committed_people": revealed_names,
-                        "commitments": updated_commitments,
-                        "modified_at": datetime.utcnow().isoformat()
+                objectives_col.update_one(
+                    {"_id": ObjectId(objective_id)},
+                    {
+                        "$set": {
+                            "closed": True,
+                            "committed_people": revealed_names,
+                            "commitments": updated_commitments,
+                            "modified_at": datetime.utcnow().isoformat()
                     }
-                }
-            )
+                )
         
     return {"message": "Commitment stored.", "ciphertext": ciphertext}
 
