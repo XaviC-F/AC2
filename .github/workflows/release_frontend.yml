@@ -9,7 +9,7 @@ on:
 
 
 env:
-  AWS_REGION: eu-north
+  AWS_REGION: eu-north-1
   ECR_REGISTRY: 675175159409.dkr.ecr.eu-north-1.amazonaws.com
   ECR_REPOSITORY: ac2-frontend
   PROJECT_NAME: ECS-ac2-frontend
