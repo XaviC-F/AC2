@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Shield, Users, Lock, ChevronRight, Plus, List, FileSignature, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
 export default function AC2Homepage() {
+  const router = useRouter();
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
 
   const useCases = [
@@ -205,12 +207,15 @@ export default function AC2Homepage() {
                 red: "from-red-500/20"
               };
               return (
-                <Link
+                <div
                   key={idx}
-                  href={`/blog/${useCase.slug}`}
+                  onClick={() => {
+                    window.scrollTo(0, 0);
+                    router.push(`/blog/${useCase.slug}`);
+                  }}
                   onMouseEnter={() => setHoveredCard(idx)}
                   onMouseLeave={() => setHoveredCard(null)}
-                  className="group relative overflow-hidden rounded-xl border border-white/20 bg-white/5 p-6 sm:p-8 md:p-10 transition-all hover:border-white/40 no-underline block"
+                  className="group relative overflow-hidden rounded-xl border border-white/20 bg-white/5 p-6 sm:p-8 md:p-10 transition-all hover:border-white/40 cursor-pointer"
                 >
                   {/* Gradient overlay */}
                   <div className={`absolute inset-0 bg-gradient-to-br ${colorMap[useCase.color as keyof typeof colorMap]} pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity`}></div>
@@ -233,7 +238,7 @@ export default function AC2Homepage() {
                       </p>
                     </div>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>

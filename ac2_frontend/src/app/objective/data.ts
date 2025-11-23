@@ -15,8 +15,9 @@ export interface Objective {
   title: string;
   description: string;
   resolutionDate: string; // ISO string of future resolution date
-  closed: boolean;
-  committers?: string[]; // List of people if closed
+  published: boolean;
+  requireIdentityVerification?: boolean;
+  committers?: string[]; // List of people if published
   commitments?: Commitment[]; // List of encrypted commitments
   resolution_strategy?: string; // ASAP or DEADLINE
   minimum_number?: number; // Minimum commitments required for any decryption

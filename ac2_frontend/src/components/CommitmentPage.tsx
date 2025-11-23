@@ -3,7 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { Lock, Target, CheckCircle, XCircle, Upload, X, ArrowRight } from 'lucide-react';
+import { Lock, Target, CheckCircle, XCircle, Upload, X, ArrowRight, ShieldCheck } from 'lucide-react';
 import { API_URL } from '@/config/config';
 import { Objective } from '../app/objective/data';
 
@@ -13,6 +13,7 @@ interface ObjectiveWithDetails extends Objective {
   category?: string;
   threshold?: number;
   deadline?: string;
+  requireIdentityVerification?: boolean;
 }
 
 type ObjectiveApiResponse = ObjectiveWithDetails & {
@@ -26,6 +27,8 @@ function normalizeObjective(data: ObjectiveApiResponse): ObjectiveWithDetails {
   return {
     ...data,
     resolutionDate,
+    requireIdentityVerification:
+      data.requireIdentityVerification ?? data.require_identity_verification,
   };
 }
 
@@ -87,6 +90,10 @@ export default function CommitmentPage() {
   const handleCommitment = async (choice: 'commit' | 'decline') => {
     setSelectedChoice(choice);
     if (choice === 'decline') setCommitNumber('');
+  };
+
+  const handleVerifyClick = () => {
+    alert('Identity verification feature to be added.');
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -375,9 +382,6 @@ export default function CommitmentPage() {
         <div className="mt-12 sm:mt-20 md:mt-32">
           {/* Section Header */}
           <div className="mb-8 sm:mb-12">
-            <div className="mb-4 sm:mb-6 inline-block">
-              <div className="h-px w-12 sm:w-16 bg-white/40"></div>
-            </div>
             <div className="inline-flex items-center gap-2 border border-white/20 bg-white/5 px-4 py-2 mb-6">
               <Lock className="w-4 h-4 text-white/60" />
               <span className="text-xs uppercase tracking-[0.15em] text-white/60">Anonymous & Secure</span>
@@ -427,6 +431,30 @@ export default function CommitmentPage() {
               </div>
             </div>
           </div>) : null}
+
+          {objective?.requireIdentityVerification ? (
+            <div className="border border-white/20 bg-white/5 p-5 sm:p-6 lg:p-8 backdrop-blur-sm mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 border border-white/20 bg-white/5 rounded-lg flex items-center justify-center">
+                  <ShieldCheck className="w-5 h-5 text-white/70" />
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-[0.15em] text-white/60 mb-1">Identity Required</div>
+                  <p className="text-sm text-white/70">
+                    The organizer asked for identity verification.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleVerifyClick}
+                className="inline-flex items-center gap-2 px-4 py-2 border border-white/20 bg-white/10 text-white text-xs uppercase tracking-[0.15em] transition hover:border-white/40 hover:bg-white/20"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                Verify
+              </button>
+            </div>
+          ) : null}
 
           {/* Commitment Form Card */}
           <div className="border border-white/20 bg-white/5 p-6 sm:p-8 lg:p-12 backdrop-blur-sm relative">
@@ -525,7 +553,7 @@ export default function CommitmentPage() {
                     Please enter a number between 1 and {objective?.eligible_count || objective?.invited_count || 'the group size'}.
                   </p>
                 )}
-                {objective?.minimum_number && objective.minimum_number > 1 && selectedChoice !== 'decline' && (
+                {objective?.minimum_number && objective.minimum_number > 1 && selectedChoice === 'commit' && (
                   <p className="text-xs text-orange-400/70 mt-2">
                     Note: Due to the objective's requirement of at least {objective.minimum_number} commitments, 
                     the smallest number of names that will be revealed is {objective.minimum_number}.

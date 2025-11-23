@@ -17,6 +17,7 @@ from ac2_backend.core.commit_classes import NameHolder, CommitEncrypter, CommitD
 
 MAX_NAME_LENGTH = 1000
 NameStr = Annotated[str, Field(min_length=1, max_length=MAX_NAME_LENGTH)]
+DEFAULT_DATABASE_URI = "mongodb://localhost:27017/"
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -31,10 +32,7 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# -----------------------------------------------------------------------------
-# DB Setup
-# -----------------------------------------------------------------------------
-client = MongoClient("mongodb://localhost:27017/")
+client = MongoClient(config("DATABASE_URI"))
 db = client["objectives_db"]
 objectives_col = db["objectives"]
 
@@ -459,7 +457,7 @@ def get_most_recently_published(limit: int = 10):
                 "resolution_date": o.get("resolution_date"),
                 "resolutionDate": o.get("resolution_date"),
                 "committed_people": o.get("committed_people"),
-                "resolution_strategy": o.get("resolution_strategy", "ASAP"),
+                "committers": o.get("committers") or o.get("committed_people"),
             },
             objectives,
         )

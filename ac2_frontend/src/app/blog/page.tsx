@@ -1,10 +1,13 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { blogPosts } from './data';
 
 export default function BlogPage() {
+  const router = useRouter();
+  
   return (
     <div className="flex flex-col bg-[#0a0a0a] text-white min-h-screen">
       {/* Header */}
@@ -42,10 +45,13 @@ export default function BlogPage() {
           {/* Blog Posts List */}
           <div className="space-y-6 sm:space-y-8">
             {blogPosts.map((post) => (
-              <Link
+              <div
                 key={post.slug}
-                href={`/blog/${post.slug}`}
-                className="group block border border-white/20 bg-white/5 p-6 sm:p-8 transition-all hover:border-white/40 hover:bg-white/10 no-underline"
+                onClick={() => {
+                  window.scrollTo(0, 0);
+                  router.push(`/blog/${post.slug}`);
+                }}
+                className="group block border border-white/20 bg-white/5 p-6 sm:p-8 transition-all hover:border-white/40 hover:bg-white/10 cursor-pointer"
               >
                 <div className="mb-3 text-xs uppercase tracking-[0.15em] text-white/50">
                   {post.date}
@@ -57,7 +63,7 @@ export default function BlogPage() {
                 <p className="text-sm sm:text-base leading-relaxed text-white/70">
                   {post.excerpt}
                 </p>
-              </Link>
+              </div>
             ))}
           </div>
         </div>
