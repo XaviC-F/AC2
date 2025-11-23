@@ -116,14 +116,9 @@ class Objective(BaseModel):
     description: str
     eligible_names: List[NameStr]
     resolution_date: datetime
-<<<<<<< HEAD
     resolution_strategy: Optional[str] = "DEADLINE"
-    minimum_number: Optional[int] = 1
+    minimum_commitments: Optional[int] = 1
     visibility: Optional[str] = "private"
-=======
-    resolution_strategy: Optional[ResolutionStrategy] = ResolutionStrategy.ASAP
-    minimum_commitments: Optional[int]  # ignored
->>>>>>> 2d41668 (use minimum commitments)
 
 class Commitment(BaseModel):
     name: NameStr
