@@ -13,6 +13,7 @@ interface ObjectiveWithDetails extends Objective {
   category?: string;
   threshold?: number;
   deadline?: string;
+  closed?: boolean;
 }
 
 type ObjectiveApiResponse = ObjectiveWithDetails & {
@@ -72,7 +73,7 @@ export default function CommitmentPage() {
 
         const normalized = normalizeObjective(data);
         setObjective(normalized);
-        setIsClosed(normalized.closed);
+        setIsClosed(normalized.closed ?? false);
 
       } catch (e) {
         if (!cancelled) setObjectiveError((e instanceof Error ? e.message : String(e)) || "Failed to load objective");
