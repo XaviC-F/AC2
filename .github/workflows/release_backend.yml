@@ -1,89 +1,90 @@
-name: Build Backend Image and push to ECR
+# Disabled as hackathon is over. Can be reenabled to reactivate AWS push
+# name: Build Backend Image and push to ECR
 
-on:
-  push:
-    paths:
-      - 'ac2_backend/**'
-      - .env
-    branches:
-      - main
+# on:
+#   push:
+#     paths:
+#       - 'ac2_backend/**'
+#       - .env
+#     branches:
+#       - main
 
 
-env:
-  AWS_REGION: eu-north-1
-  ECR_REGISTRY: 675175159409.dkr.ecr.eu-north-1.amazonaws.com
-  ECR_REPOSITORY: ac2-backend
-  PROJECT_NAME: ECS-ac2-backend
-  ECS_SERVICE: ac2-fastapi-backend-service-c7nwtxfl
-  ECS_CLUSTER: ac2-brandon-is-very-cool-mh6skg
-  CONTAINER_NAME: ac2-fastapi-backend
-  TASK_DEFINITION: ac2-fastapi-backend
-  TF_VERSION: 1.5.0
-  APP_PORT: 8000
+# env:
+#   AWS_REGION: eu-north-1
+#   ECR_REGISTRY: 675175159409.dkr.ecr.eu-north-1.amazonaws.com
+#   ECR_REPOSITORY: ac2-backend
+#   PROJECT_NAME: ECS-ac2-backend
+#   ECS_SERVICE: ac2-fastapi-backend-service-c7nwtxfl
+#   ECS_CLUSTER: ac2-brandon-is-very-cool-mh6skg
+#   CONTAINER_NAME: ac2-fastapi-backend
+#   TASK_DEFINITION: ac2-fastapi-backend
+#   TF_VERSION: 1.5.0
+#   APP_PORT: 8000
 
-jobs:
-  build-and-push:
-    name: Build and Push to ECR
-    runs-on: ubuntu-latest
-    outputs:
-      image-tag: "latest"
-      image-uri: "675175159409.dkr.ecr.eu-north-1.amazonaws.com/ac2-backend"
+# jobs:
+#   build-and-push:
+#     name: Build and Push to ECR
+#     runs-on: ubuntu-latest
+#     outputs:
+#       image-tag: "latest"
+#       image-uri: "675175159409.dkr.ecr.eu-north-1.amazonaws.com/ac2-backend"
 
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+#     steps:
+#     - name: Checkout code
+#       uses: actions/checkout@v4
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
+#     - name: Configure AWS credentials
+#       uses: aws-actions/configure-aws-credentials@v4
+#       with:
+#         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#         aws-region: ${{ env.AWS_REGION }}
 
-    - name: Login to Amazon ECR Public
-      id: login-ecr-public
-      uses: aws-actions/amazon-ecr-login@v2
-      with:
-        registry-type: private
-        mask-password: 'true'
+#     - name: Login to Amazon ECR Public
+#       id: login-ecr-public
+#       uses: aws-actions/amazon-ecr-login@v2
+#       with:
+#         registry-type: private
+#         mask-password: 'true'
 
-    - name: Build and push Docker image
-      id: build-image
-      working-directory: .
-      run: |
-        # Generate image tag using git commit SHA and timestamp
-        IMAGE_TAG="${GITHUB_SHA:0:8}-$(date +%s)"
-        IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+#     - name: Build and push Docker image
+#       id: build-image
+#       working-directory: .
+#       run: |
+#         # Generate image tag using git commit SHA and timestamp
+#         IMAGE_TAG="${GITHUB_SHA:0:8}-$(date +%s)"
+#         IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
-        echo "Building image: $IMAGE_URI"
+#         echo "Building image: $IMAGE_URI"
 
-        # Build the Docker image
-        docker build -t $IMAGE_URI -f ac2_backend/dockerfile .
+#         # Build the Docker image
+#         docker build -t $IMAGE_URI -f ac2_backend/dockerfile .
 
-        # Push the image to ECR
-        docker push $IMAGE_URI
+#         # Push the image to ECR
+#         docker push $IMAGE_URI
 
-        # Also tag and push as latest
-        docker tag $IMAGE_URI $ECR_REGISTRY/$ECR_REPOSITORY:latest
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+#         # Also tag and push as latest
+#         docker tag $IMAGE_URI $ECR_REGISTRY/$ECR_REPOSITORY:latest
+#         docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-    - name: Download current task definition
-      run: |
-        aws ecs describe-task-definition \
-          --task-definition $TASK_DEFINITION \
-          --query taskDefinition > task-definition.json
+#     - name: Download current task definition
+#       run: |
+#         aws ecs describe-task-definition \
+#           --task-definition $TASK_DEFINITION \
+#           --query taskDefinition > task-definition.json
 
-    - name: Update task definition with new image
-      id: task-def
-      uses: aws-actions/amazon-ecs-render-task-definition@v1
-      with:
-        task-definition: task-definition.json
-        container-name: ${{ env.CONTAINER_NAME }}
-        image: "675175159409.dkr.ecr.eu-north-1.amazonaws.com/ac2-backend"
+#     - name: Update task definition with new image
+#       id: task-def
+#       uses: aws-actions/amazon-ecs-render-task-definition@v1
+#       with:
+#         task-definition: task-definition.json
+#         container-name: ${{ env.CONTAINER_NAME }}
+#         image: "675175159409.dkr.ecr.eu-north-1.amazonaws.com/ac2-backend"
 
-    - name: Force ECS service redeployment
-      run: |
-        aws ecs update-service \
-          --cluster $ECS_CLUSTER \
-          --service $ECS_SERVICE \
-          --force-new-deployment
+#     - name: Force ECS service redeployment
+#       run: |
+#         aws ecs update-service \
+#           --cluster $ECS_CLUSTER \
+#           --service $ECS_SERVICE \
+#           --force-new-deployment
