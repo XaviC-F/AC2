@@ -525,7 +525,7 @@ export default function CommitmentPage() {
                 )}
                 {objective?.minimum_number && objective.minimum_number > 1 && selectedChoice === 'commit' && (
                   <p className="text-xs text-orange-400/70 mt-2">
-                    Note: Due to the objective's requirement of at least {objective.minimum_number} commitments, 
+                    Note: Due to the objective&apos;s requirement of at least {objective.minimum_number} commitments,
                     the smallest number of names that will be revealed is {objective.minimum_number}.
                   </p>
                 )}
