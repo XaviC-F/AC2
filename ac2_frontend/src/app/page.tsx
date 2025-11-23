@@ -440,7 +440,6 @@ export default function AC2Homepage() {
               <p className="text-xs uppercase tracking-[0.1em] text-white/60">Resources</p>
               <nav className="flex flex-col gap-3 text-sm uppercase tracking-[0.15em] text-white/70">
                 <Link href="/objective" className="transition hover:text-white no-underline">Objectives</Link>
-                <Link href="/recently_published" className="transition hover:text-white no-underline">Recent</Link>
               </nav>
             </div>
             <div className="flex flex-col gap-4">
