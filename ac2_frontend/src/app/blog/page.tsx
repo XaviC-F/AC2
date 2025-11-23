@@ -44,7 +44,12 @@ export default function BlogPage() {
 
           {/* Blog Posts List */}
           <div className="space-y-6 sm:space-y-8">
-            {blogPosts.map((post) => (
+            {[...blogPosts].sort((a, b) => {
+              // Sort by date descending (newest first)
+              const dateA = new Date(a.date);
+              const dateB = new Date(b.date);
+              return dateB.getTime() - dateA.getTime();
+            }).map((post) => (
               <div
                 key={post.slug}
                 onClick={() => {

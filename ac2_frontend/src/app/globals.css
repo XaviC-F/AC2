@@ -109,3 +109,63 @@ body {
   overflow-x: auto;
   text-align: initial;
 }
+
+/* Legal content styling */
+.legal-content {
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+.legal-content p {
+  margin-bottom: 1.5rem;
+  line-height: 1.8;
+}
+
+.legal-content h2 {
+  font-size: 2rem;
+  font-weight: 300;
+  letter-spacing: 0.025em;
+  color: white;
+  margin-top: 3rem;
+  margin-bottom: 1.5rem;
+}
+
+.legal-content h2:first-child {
+  margin-top: 0;
+}
+
+.legal-content h3 {
+  font-size: 1.5rem;
+  font-weight: 300;
+  letter-spacing: 0.025em;
+  color: white;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.legal-content a {
+  color: white;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: rgba(255, 255, 255, 0.4);
+  transition: text-decoration-color 0.2s;
+}
+
+.legal-content a:hover {
+  text-decoration-color: white;
+}
+
+.legal-content ul,
+.legal-content ol {
+  margin-bottom: 1.5rem;
+  padding-left: 1.5rem;
+}
+
+.legal-content li {
+  margin-bottom: 0.5rem;
+  line-height: 1.75;
+}
+
+.legal-content strong {
+  font-weight: 400;
+  color: white;
+}

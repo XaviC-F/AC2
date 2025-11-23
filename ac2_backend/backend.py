@@ -1,4 +1,5 @@
 from typing import Annotated, List, Tuple, Optional
+from enum import Enum
 from pymongo import MongoClient
 from bson import ObjectId
 from decouple import config
@@ -32,9 +33,79 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-client = MongoClient(config("DATABASE_URI"))
+client = MongoClient(config("DATABASE_URI", default=DEFAULT_DATABASE_URI))
 db = client["objectives_db"]
 objectives_col = db["objectives"]
+
+# -----------------------------------------------------------------------------
+# Helpers and models
+# -----------------------------------------------------------------------------
+
+class ResolutionStrategy(str, Enum):
+    ASAP = "ASAP"
+    DEADLINE = "DEADLINE"
+
+
+class Commitment(BaseModel):
+    # Capitalized field name kept for backward/front-end compatibility
+    Number: int
+    name: NameStr
+
+
+def points_to_db(points: List[Tuple[int, int]]) -> List[List[str]]:
+    """Convert (x, y) tuples with big ints to strings for MongoDB."""
+    return [[str(x), str(y)] for x, y in points]
+
+
+def points_from_db(points_db: List[List[str]]) -> List[Tuple[int, int]]:
+    """Restore (x, y) tuples from their string representation."""
+    return [(int(x), int(y)) for x, y in points_db]
+
+
+def restore_encrypter(objective_doc) -> CommitEncrypter:
+    invited = objective_doc.get("invited_people", [])
+    nh = NameHolder(invited)
+    n = len(invited)
+
+    min_count = max(1, min(objective_doc.get("minimum_number", 1), n))
+
+    seed = objective_doc.get("encryption_seed")
+    if not seed:
+        logger.warning("No encryption seed found, using fallback random seed")
+        seed = "fallback_seed"
+
+    encrypter = CommitEncrypter(nh, min_count, seed=seed)
+
+    used_xs = []
+    for c in objective_doc.get("commitments", []):
+        for p in c.get("points", []):
+            used_xs.append(int(p[0]))
+
+    encrypter.set_used_xs(used_xs)
+    return encrypter
+
+
+def restore_decrypter(objective_doc) -> CommitDecrypter:
+    invited = objective_doc.get("invited_people", [])
+    cd = CommitDecrypter(len(invited))
+
+    stored_commitments = objective_doc.get("commitments", [])
+    for c in stored_commitments:
+        if "ciphertext" in c and "points" in c:
+            pts = points_from_db(c["points"])
+            cd.add_commitment(c["ciphertext"], pts)
+
+    return cd
+
+
+def is_past_resolution_date(objective):
+    res_date = objective.get("resolution_date")
+    if res_date is None:
+        return False
+    if isinstance(res_date, str):
+        res_date = datetime.fromisoformat(res_date)
+    today = datetime.utcnow().date()
+    return today > res_date.date()
 
 # -----------------------------------------------------------------------------
 # Models
