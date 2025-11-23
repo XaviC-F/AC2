@@ -174,9 +174,9 @@ export default function ObjectivePage() {
               {/* Status / Deadline */}
               <div>
                 <div className="text-xs uppercase tracking-[0.15em] text-white/60 mb-2">
-                  {obj.closed ? 'Deadline' : 'Status'}
+                  {(obj.closed ?? false) ? 'Deadline' : 'Status'}
                 </div>
-                {obj.closed ? (
+                {(obj.closed ?? false) ? (
                   <div className="text-lg font-light text-white">
                     {new Date(obj.resolutionDate).toLocaleDateString(undefined, {
                       year: 'numeric',

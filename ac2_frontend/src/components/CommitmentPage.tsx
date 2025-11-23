@@ -13,7 +13,6 @@ interface ObjectiveWithDetails extends Objective {
   category?: string;
   threshold?: number;
   deadline?: string;
-  closed?: boolean;
 }
 
 type ObjectiveApiResponse = ObjectiveWithDetails & {

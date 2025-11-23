@@ -402,6 +402,7 @@ def commit(objective_id: str, c: Commitment):
                             "committed_people": revealed_names,
                             "commitments": updated_commitments,
                             "modified_at": datetime.utcnow().isoformat()
+                        }
                     }
                 )
         

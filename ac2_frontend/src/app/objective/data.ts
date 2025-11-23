@@ -23,4 +23,5 @@ export interface Objective {
   minimum_number?: number; // Minimum commitments required for any decryption
   eligible_count?: number; // Total number of eligible people
   invited_count?: number; // Deprecated: Total number of invited people
+  closed?: boolean;
 }
