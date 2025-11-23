@@ -1,0 +1,939 @@
+---
+Metadata:
+  AWSToolsMetrics:
+    IaC_Generator: "arn:aws:cloudformation:eu-north-1:675175159409:generatedTemplate/c1cb4f20-a7e2-40ab-8b56-253e5cdbcc68"
+Resources:
+  IAMRoleEcsTaskExecutionRole:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::Role"
+    DeletionPolicy: "Retain"
+    Properties:
+      Path: "/"
+      ManagedPolicyArns:
+      - "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+      MaxSessionDuration: 3600
+      RoleName: "ecsTaskExecutionRole"
+      AssumeRolePolicyDocument:
+        Version: "2008-10-17"
+        Statement:
+        - Action: "sts:AssumeRole"
+          Effect: "Allow"
+          Principal:
+            Service: "ecs-tasks.amazonaws.com"
+          Sid: ""
+  EC2SubnetMJ:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::Subnet"
+    DeletionPolicy: "Retain"
+    Properties:
+      MapPublicIpOnLaunch: true
+      EnableDns64: false
+      VpcId:
+        Ref: "EC2VPC"
+      AvailabilityZoneId: "eun1-az3"
+      PrivateDnsNameOptionsOnLaunch:
+        EnableResourceNameDnsARecord: false
+        HostnameType: "ip-name"
+        EnableResourceNameDnsAAAARecord: false
+      CidrBlock: "172.31.0.0/20"
+      Ipv6Native: false
+      Tags: []
+  LogsLogStreamEcsac2nextjsfrontend9c4ff9e666604952af337e1853488767:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "ecs/ac2-nextjs-frontend/9c4ff9e666604952af337e1853488767"
+      LogGroupName:
+        Ref: "LogsLogGroupecsac2frontend"
+  LogsLogStreamEcsac2nextjsfrontend343dadbfefb6484bbf9d0558caaa877c:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "ecs/ac2-nextjs-frontend/343dadbfefb6484bbf9d0558caaa877c"
+      LogGroupName:
+        Ref: "LogsLogGroupecsac2frontend"
+  LogsLogStreamEcsac2fastapibackendb6ab81ef011a446e9c4da603db4cc055:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "ecs/ac2-fastapi-backend/b6ab81ef011a446e9c4da603db4cc055"
+      LogGroupName:
+        Ref: "LogsLogGroupecs"
+  EC2Subnet:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::Subnet"
+    DeletionPolicy: "Retain"
+    Properties:
+      MapPublicIpOnLaunch: true
+      EnableDns64: false
+      VpcId:
+        Ref: "EC2VPC"
+      AvailabilityZoneId: "eun1-az2"
+      PrivateDnsNameOptionsOnLaunch:
+        EnableResourceNameDnsARecord: false
+        HostnameType: "ip-name"
+        EnableResourceNameDnsAAAARecord: false
+      CidrBlock: "172.31.32.0/20"
+      Ipv6Native: false
+      Tags: []
+  LogsLogStreamEcsac2nextjsfrontend607846266a924b688bf10847e8576114:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "ecs/ac2-nextjs-frontend/607846266a924b688bf10847e8576114"
+      LogGroupName:
+        Ref: "LogsLogGroupecsac2frontend"
+  IAMRoleAWSServiceRoleForResourceExplorer:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::Role"
+    DeletionPolicy: "Retain"
+    Properties:
+      Path: "/aws-service-role/resource-explorer-2.amazonaws.com/"
+      ManagedPolicyArns:
+      - "arn:aws:iam::aws:policy/aws-service-role/AWSResourceExplorerServiceRolePolicy"
+      MaxSessionDuration: 3600
+      RoleName: "AWSServiceRoleForResourceExplorer"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Action: "sts:AssumeRole"
+          Effect: "Allow"
+          Principal:
+            Service: "resource-explorer-2.amazonaws.com"
+  IAMRoleAWSServiceRoleForECS:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::Role"
+    DeletionPolicy: "Retain"
+    Properties:
+      Path: "/aws-service-role/ecs.amazonaws.com/"
+      ManagedPolicyArns:
+      - "arn:aws:iam::aws:policy/aws-service-role/AmazonECSServiceRolePolicy"
+      MaxSessionDuration: 3600
+      RoleName: "AWSServiceRoleForECS"
+      Description: "Policy to enable Amazon ECS to manage your EC2 instances and related\
+        \ resources."
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Action: "sts:AssumeRole"
+          Effect: "Allow"
+          Principal:
+            Service: "ecs.amazonaws.com"
+  LogsLogStreamEcsac2nextjsfrontende5e14d24d13349f49f916ecee669ca20:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "ecs/ac2-nextjs-frontend/e5e14d24d13349f49f916ecee669ca20"
+      LogGroupName:
+        Ref: "LogsLogGroupecsac2frontend"
+  IAMGroupDeployers:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::Group"
+    DeletionPolicy: "Retain"
+    Properties:
+      GroupName: "deployers"
+      Path: "/"
+      ManagedPolicyArns:
+      - "arn:aws:iam::aws:policy/AmazonElasticContainerRegistryPublicFullAccess"
+      - "arn:aws:iam::aws:policy/AdministratorAccess"
+      - "arn:aws:iam::aws:policy/AmazonECS_FullAccess"
+  LogsLogStreamEcsac2fastapibackend7d97577960334db8ac29caf5d73366c2:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "ecs/ac2-fastapi-backend/7d97577960334db8ac29caf5d73366c2"
+      LogGroupName:
+        Ref: "LogsLogGroupecs"
+  LogsLogStreamEcsac2fastapibackendf429f1802bd4494e8878ccde21928676:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "ecs/ac2-fastapi-backend/f429f1802bd4494e8878ccde21928676"
+      LogGroupName:
+        Ref: "LogsLogGroupecs"
+  ECSTaskDefinitionTaskdefinitionac2frontend1:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::ECS::TaskDefinition"
+    DeletionPolicy: "Retain"
+    Properties:
+      InferenceAccelerators: []
+      Memory: "3072"
+      PlacementConstraints: []
+      Cpu: "1024"
+      RequiresCompatibilities:
+      - "FARGATE"
+      NetworkMode: "awsvpc"
+      EnableFaultInjection: false
+      ExecutionRoleArn:
+        Fn::GetAtt:
+        - "IAMRoleEcsTaskExecutionRole"
+        - "Arn"
+      RuntimePlatform:
+        OperatingSystemFamily: "LINUX"
+        CpuArchitecture: "X86_64"
+      Volumes: []
+      ContainerDefinitions:
+      - ExtraHosts: []
+        Secrets: []
+        VolumesFrom: []
+        Cpu: 0
+        EntryPoint: []
+        DnsServers: []
+        Image: "675175159409.dkr.ecr.eu-north-1.amazonaws.com/ac2-backend@sha256:ba291631c025601e8d3083c339a8ec5960ada990e126665e169eda8c0edb238b"
+        Essential: true
+        LogConfiguration:
+          SecretOptions: []
+          Options:
+            awslogs-group: "/ecs/ac2-frontend"
+            awslogs-create-group: "true"
+            awslogs-region: "eu-north-1"
+            awslogs-stream-prefix: "ecs"
+          LogDriver: "awslogs"
+        ResourceRequirements: []
+        EnvironmentFiles: []
+        Name: "ac2-nextjs-frontend"
+        MountPoints: []
+        DependsOn: []
+        DockerLabels: {}
+        PortMappings:
+        - ContainerPort: 443
+          Protocol: "tcp"
+          HostPort: 443
+          Name: "ac2-nextjs-frontend-443-tcp"
+        - ContainerPort: 80
+          AppProtocol: "http"
+          Protocol: "tcp"
+          HostPort: 80
+          Name: "ac2-nextjs-frontend-80-tcp"
+        - ContainerPort: 3000
+          Protocol: "tcp"
+          HostPort: 3000
+          Name: "ac2-nextjs-frontend-3000-tcp"
+        DockerSecurityOptions: []
+        SystemControls: []
+        Command: []
+        DnsSearchDomains: []
+        Environment: []
+        Links: []
+        CredentialSpecs: []
+        Ulimits: []
+      Family: "ac2-frontend"
+      Tags: []
+  LogsLogStreamEcsac2nextjsfrontend53360aa421794aa085343aff32e22036:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "ecs/ac2-nextjs-frontend/53360aa421794aa085343aff32e22036"
+      LogGroupName:
+        Ref: "LogsLogGroupecsac2frontend"
+  ECSTaskDefinitionTaskdefinitionac2frontend2:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::ECS::TaskDefinition"
+    DeletionPolicy: "Retain"
+    Properties:
+      InferenceAccelerators: []
+      Memory: "3072"
+      PlacementConstraints: []
+      Cpu: "1024"
+      RequiresCompatibilities:
+      - "FARGATE"
+      NetworkMode: "awsvpc"
+      EnableFaultInjection: false
+      ExecutionRoleArn:
+        Fn::GetAtt:
+        - "IAMRoleEcsTaskExecutionRole"
+        - "Arn"
+      RuntimePlatform:
+        OperatingSystemFamily: "LINUX"
+        CpuArchitecture: "X86_64"
+      Volumes: []
+      ContainerDefinitions:
+      - ExtraHosts: []
+        Secrets: []
+        VolumesFrom: []
+        Cpu: 0
+        EntryPoint: []
+        DnsServers: []
+        Image: "675175159409.dkr.ecr.eu-north-1.amazonaws.com/ac2-frontend@sha256:cb715a184f26ce8f47b161475a2b1d3053f1eb03568a29fd089e796d5c421de7"
+        Essential: true
+        LogConfiguration:
+          SecretOptions: []
+          Options:
+            awslogs-group: "/ecs/ac2-frontend"
+            awslogs-create-group: "true"
+            awslogs-region: "eu-north-1"
+            awslogs-stream-prefix: "ecs"
+          LogDriver: "awslogs"
+        ResourceRequirements: []
+        EnvironmentFiles: []
+        Name: "ac2-nextjs-frontend"
+        MountPoints: []
+        DependsOn: []
+        DockerLabels: {}
+        PortMappings:
+        - ContainerPort: 443
+          Protocol: "tcp"
+          HostPort: 443
+          Name: "ac2-nextjs-frontend-443-tcp"
+        - ContainerPort: 80
+          AppProtocol: "http"
+          Protocol: "tcp"
+          HostPort: 80
+          Name: "ac2-nextjs-frontend-80-tcp"
+        - ContainerPort: 3000
+          Protocol: "tcp"
+          HostPort: 3000
+          Name: "ac2-nextjs-frontend-3000-tcp"
+        DockerSecurityOptions: []
+        SystemControls: []
+        Command: []
+        DnsSearchDomains: []
+        Environment: []
+        Links: []
+        CredentialSpecs: []
+        Ulimits: []
+      Family: "ac2-frontend"
+      Tags: []
+  ECSTaskDefinitionTaskdefinitionac2frontend3:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::ECS::TaskDefinition"
+    DeletionPolicy: "Retain"
+    Properties:
+      InferenceAccelerators: []
+      Memory: "3072"
+      PlacementConstraints: []
+      Cpu: "1024"
+      RequiresCompatibilities:
+      - "FARGATE"
+      NetworkMode: "awsvpc"
+      EnableFaultInjection: false
+      ExecutionRoleArn:
+        Fn::GetAtt:
+        - "IAMRoleEcsTaskExecutionRole"
+        - "Arn"
+      RuntimePlatform:
+        OperatingSystemFamily: "LINUX"
+        CpuArchitecture: "X86_64"
+      Volumes: []
+      ContainerDefinitions:
+      - ExtraHosts: []
+        Secrets: []
+        VolumesFrom: []
+        Cpu: 0
+        EntryPoint: []
+        DnsServers: []
+        Image: "675175159409.dkr.ecr.eu-north-1.amazonaws.com/ac2-frontend:latest"
+        Essential: true
+        LogConfiguration:
+          SecretOptions: []
+          Options:
+            awslogs-group: "/ecs/ac2-frontend"
+            awslogs-create-group: "true"
+            awslogs-region: "eu-north-1"
+            awslogs-stream-prefix: "ecs"
+          LogDriver: "awslogs"
+        ResourceRequirements: []
+        EnvironmentFiles: []
+        Name: "ac2-nextjs-frontend"
+        MountPoints: []
+        DependsOn: []
+        DockerLabels: {}
+        PortMappings:
+        - ContainerPort: 443
+          Protocol: "tcp"
+          HostPort: 443
+          Name: "ac2-nextjs-frontend-443-tcp"
+        - ContainerPort: 80
+          AppProtocol: "http"
+          Protocol: "tcp"
+          HostPort: 80
+          Name: "ac2-nextjs-frontend-80-tcp"
+        - ContainerPort: 3000
+          Protocol: "tcp"
+          HostPort: 3000
+          Name: "ac2-nextjs-frontend-3000-tcp"
+        DockerSecurityOptions: []
+        SystemControls: []
+        Command: []
+        DnsSearchDomains: []
+        Environment: []
+        Links: []
+        CredentialSpecs: []
+        Ulimits: []
+      Family: "ac2-frontend"
+      Tags: []
+  LogsLogStreamEcsac2nextjsfrontendaef4439fb6654bcd862a3d536e1ea323:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "ecs/ac2-nextjs-frontend/aef4439fb6654bcd862a3d536e1ea323"
+      LogGroupName:
+        Ref: "LogsLogGroupecsac2frontend"
+  EC2SubnetOP:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::Subnet"
+    DeletionPolicy: "Retain"
+    Properties:
+      MapPublicIpOnLaunch: true
+      EnableDns64: false
+      VpcId:
+        Ref: "EC2VPC"
+      AvailabilityZoneId: "eun1-az1"
+      PrivateDnsNameOptionsOnLaunch:
+        EnableResourceNameDnsARecord: false
+        HostnameType: "ip-name"
+        EnableResourceNameDnsAAAARecord: false
+      CidrBlock: "172.31.16.0/20"
+      Ipv6Native: false
+      Tags: []
+  LogsLogStreamEcsac2fastapibackendbeb86483df7c4a3f85964f87e3661e90:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "ecs/ac2-fastapi-backend/beb86483df7c4a3f85964f87e3661e90"
+      LogGroupName:
+        Ref: "LogsLogGroupecs"
+  LogsLogStreamEcsac2fastapibackend71b4f6ce84994ca58924bcd1b3ee92a4:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "ecs/ac2-fastapi-backend/71b4f6ce84994ca58924bcd1b3ee92a4"
+      LogGroupName:
+        Ref: "LogsLogGroupecs"
+  LogsLogStreamEcsac2fastapibackend538916dba7aa4ab08d5e819f3ea224f7:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "ecs/ac2-fastapi-backend/538916dba7aa4ab08d5e819f3ea224f7"
+      LogGroupName:
+        Ref: "LogsLogGroupecs"
+  LogsLogStreamEcsac2fastapibackendd788587dc4da4a9d81624639983a665f:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "ecs/ac2-fastapi-backend/d788587dc4da4a9d81624639983a665f"
+      LogGroupName:
+        Ref: "LogsLogGroupecs"
+  LogsLogStreamEcsac2nextjsfrontendea1d75db94b84892a4c1811741034540:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "ecs/ac2-nextjs-frontend/ea1d75db94b84892a4c1811741034540"
+      LogGroupName:
+        Ref: "LogsLogGroupecsac2frontend"
+  LogsLogGroupecs:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogGroup"
+    DeletionPolicy: "Retain"
+    Properties:
+      FieldIndexPolicies: []
+      LogGroupClass: "STANDARD"
+      LogGroupName: "/ecs/"
+      DataProtectionPolicy: {}
+  IAMUserGithubdeployerbot:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::User"
+    DeletionPolicy: "Retain"
+    Properties:
+      Path: "/"
+      Groups:
+      - Ref: "IAMGroupDeployers"
+      UserName: "github-deployer-bot"
+  IAMRoleAWSServiceRoleForTrustedAdvisor:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::Role"
+    DeletionPolicy: "Retain"
+    Properties:
+      Path: "/aws-service-role/trustedadvisor.amazonaws.com/"
+      ManagedPolicyArns:
+      - "arn:aws:iam::aws:policy/aws-service-role/AWSTrustedAdvisorServiceRolePolicy"
+      MaxSessionDuration: 3600
+      RoleName: "AWSServiceRoleForTrustedAdvisor"
+      Description: "Access for the AWS Trusted Advisor Service to help reduce cost,\
+        \ increase performance, and improve security of your AWS environment."
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Action: "sts:AssumeRole"
+          Effect: "Allow"
+          Principal:
+            Service: "trustedadvisor.amazonaws.com"
+  ECSTaskDefinitionTaskdefinitionac2fastapibackend4:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::ECS::TaskDefinition"
+    DeletionPolicy: "Retain"
+    Properties:
+      TaskRoleArn:
+        Fn::GetAtt:
+        - "IAMRoleEcsTaskExecutionRole"
+        - "Arn"
+      InferenceAccelerators: []
+      Memory: "3072"
+      PlacementConstraints: []
+      Cpu: "1024"
+      RequiresCompatibilities:
+      - "FARGATE"
+      NetworkMode: "awsvpc"
+      EnableFaultInjection: false
+      ExecutionRoleArn:
+        Fn::GetAtt:
+        - "IAMRoleEcsTaskExecutionRole"
+        - "Arn"
+      RuntimePlatform:
+        OperatingSystemFamily: "LINUX"
+        CpuArchitecture: "X86_64"
+      Volumes: []
+      ContainerDefinitions:
+      - Secrets: []
+        HealthCheck:
+          Command:
+          - "CMD-SHELL"
+          - "exit 0"
+          Timeout: 5
+          Retries: 3
+          Interval: 30
+        VolumesFrom: []
+        Cpu: 0
+        EntryPoint: []
+        DnsServers: []
+        Image: "675175159409.dkr.ecr.eu-north-1.amazonaws.com/ac2-backend:latest"
+        Essential: true
+        LogConfiguration:
+          SecretOptions: []
+          Options:
+            awslogs-group: "/ecs/"
+            awslogs-create-group: "true"
+            awslogs-region: "eu-north-1"
+            awslogs-stream-prefix: "ecs"
+          LogDriver: "awslogs"
+        ResourceRequirements: []
+        EnvironmentFiles: []
+        Name: "ac2-fastapi-backend"
+        DockerSecurityOptions: []
+        SystemControls: []
+        DnsSearchDomains: []
+        CredentialSpecs: []
+        Ulimits: []
+        ExtraHosts: []
+        MountPoints: []
+        DependsOn: []
+        DockerLabels: {}
+        PortMappings:
+        - ContainerPort: 8000
+          AppProtocol: "http"
+          Protocol: "tcp"
+          HostPort: 8000
+          Name: "ac2-fastapi-backend-8000-tcp"
+        - ContainerPort: 80
+          AppProtocol: "http"
+          Protocol: "tcp"
+          HostPort: 80
+          Name: "ac2-fastapi-backend-80-tcp"
+        Command: []
+        Environment: []
+        Links: []
+      Family: "ac2-fastapi-backend"
+      Tags: []
+  LogsLogStreamEcsac2nextjsfrontend14890b862ff14e3ea69c9ab2b45502c2:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "ecs/ac2-nextjs-frontend/14890b862ff14e3ea69c9ab2b45502c2"
+      LogGroupName:
+        Ref: "LogsLogGroupecsac2frontend"
+  IAMGroupAdmins:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::Group"
+    DeletionPolicy: "Retain"
+    Properties:
+      GroupName: "admins"
+      Path: "/"
+      ManagedPolicyArns:
+      - "arn:aws:iam::aws:policy/AdministratorAccess"
+  LogsLogGroupecsac2frontend:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogGroup"
+    DeletionPolicy: "Retain"
+    Properties:
+      FieldIndexPolicies: []
+      LogGroupClass: "STANDARD"
+      LogGroupName: "/ecs/ac2-frontend"
+      DataProtectionPolicy: {}
+  ECSTaskDefinitionTaskdefinitionac2fastapibackend3:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::ECS::TaskDefinition"
+    DeletionPolicy: "Retain"
+    Properties:
+      TaskRoleArn:
+        Fn::GetAtt:
+        - "IAMRoleEcsTaskExecutionRole"
+        - "Arn"
+      InferenceAccelerators: []
+      Memory: "3072"
+      PlacementConstraints: []
+      Cpu: "1024"
+      RequiresCompatibilities:
+      - "FARGATE"
+      NetworkMode: "awsvpc"
+      EnableFaultInjection: false
+      ExecutionRoleArn:
+        Fn::GetAtt:
+        - "IAMRoleEcsTaskExecutionRole"
+        - "Arn"
+      RuntimePlatform:
+        OperatingSystemFamily: "LINUX"
+        CpuArchitecture: "X86_64"
+      Volumes: []
+      ContainerDefinitions:
+      - Secrets: []
+        HealthCheck:
+          Command:
+          - "CMD-SHELL"
+          - "curl -f http://localhost/ || exit 1"
+          Timeout: 5
+          Retries: 3
+          Interval: 30
+        VolumesFrom: []
+        Cpu: 0
+        EntryPoint: []
+        DnsServers: []
+        Image: "675175159409.dkr.ecr.eu-north-1.amazonaws.com/ac2-backend:latest"
+        Essential: true
+        LogConfiguration:
+          SecretOptions: []
+          Options:
+            awslogs-group: "/ecs/"
+            awslogs-create-group: "true"
+            awslogs-region: "eu-north-1"
+            awslogs-stream-prefix: "ecs"
+          LogDriver: "awslogs"
+        ResourceRequirements: []
+        EnvironmentFiles: []
+        Name: "ac2-fastapi-backend"
+        DockerSecurityOptions: []
+        SystemControls: []
+        DnsSearchDomains: []
+        CredentialSpecs: []
+        Ulimits: []
+        ExtraHosts: []
+        MountPoints: []
+        DependsOn: []
+        DockerLabels: {}
+        PortMappings:
+        - ContainerPort: 8000
+          AppProtocol: "http"
+          Protocol: "tcp"
+          HostPort: 8000
+          Name: "ac2-fastapi-backend-8000-tcp"
+        - ContainerPort: 80
+          AppProtocol: "http"
+          Protocol: "tcp"
+          HostPort: 80
+          Name: "ac2-fastapi-backend-80-tcp"
+        Command: []
+        Environment: []
+        Links: []
+      Family: "ac2-fastapi-backend"
+      Tags: []
+  ECSTaskDefinitionTaskdefinitionac2fastapibackend2:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::ECS::TaskDefinition"
+    DeletionPolicy: "Retain"
+    Properties:
+      TaskRoleArn:
+        Fn::GetAtt:
+        - "IAMRoleEcsTaskExecutionRole"
+        - "Arn"
+      InferenceAccelerators: []
+      Memory: "3072"
+      PlacementConstraints: []
+      Cpu: "1024"
+      RequiresCompatibilities:
+      - "FARGATE"
+      NetworkMode: "awsvpc"
+      EnableFaultInjection: false
+      ExecutionRoleArn:
+        Fn::GetAtt:
+        - "IAMRoleEcsTaskExecutionRole"
+        - "Arn"
+      RuntimePlatform:
+        OperatingSystemFamily: "LINUX"
+        CpuArchitecture: "X86_64"
+      Volumes: []
+      ContainerDefinitions:
+      - ExtraHosts: []
+        Secrets: []
+        VolumesFrom: []
+        Cpu: 0
+        EntryPoint: []
+        DnsServers: []
+        Image: "675175159409.dkr.ecr.eu-north-1.amazonaws.com/ac2-backend:latest"
+        Essential: true
+        LogConfiguration:
+          SecretOptions: []
+          Options:
+            awslogs-group: "/ecs/"
+            awslogs-create-group: "true"
+            awslogs-region: "eu-north-1"
+            awslogs-stream-prefix: "ecs"
+          LogDriver: "awslogs"
+        ResourceRequirements: []
+        EnvironmentFiles: []
+        Name: "ac2-fastapi-backend"
+        MountPoints: []
+        DependsOn: []
+        DockerLabels: {}
+        PortMappings:
+        - ContainerPort: 8000
+          AppProtocol: "http"
+          Protocol: "tcp"
+          HostPort: 8000
+          Name: "ac2-fastapi-backend-8000-tcp"
+        - ContainerPort: 80
+          AppProtocol: "http"
+          Protocol: "tcp"
+          HostPort: 80
+          Name: "ac2-fastapi-backend-80-tcp"
+        DockerSecurityOptions: []
+        SystemControls: []
+        Command: []
+        DnsSearchDomains: []
+        Environment: []
+        Links: []
+        CredentialSpecs: []
+        Ulimits: []
+      Family: "ac2-fastapi-backend"
+      Tags: []
+  ECSTaskDefinitionTaskdefinitionac2fastapibackend1:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::ECS::TaskDefinition"
+    DeletionPolicy: "Retain"
+    Properties:
+      TaskRoleArn:
+        Fn::GetAtt:
+        - "IAMRoleEcsTaskExecutionRole"
+        - "Arn"
+      InferenceAccelerators: []
+      Memory: "3072"
+      PlacementConstraints: []
+      Cpu: "1024"
+      RequiresCompatibilities:
+      - "FARGATE"
+      NetworkMode: "awsvpc"
+      EnableFaultInjection: false
+      ExecutionRoleArn:
+        Fn::GetAtt:
+        - "IAMRoleEcsTaskExecutionRole"
+        - "Arn"
+      RuntimePlatform:
+        OperatingSystemFamily: "LINUX"
+        CpuArchitecture: "X86_64"
+      Volumes: []
+      ContainerDefinitions:
+      - ExtraHosts: []
+        Secrets: []
+        VolumesFrom: []
+        Cpu: 0
+        EntryPoint: []
+        DnsServers: []
+        Image: "675175159409.dkr.ecr.eu-north-1.amazonaws.com/ac2-backend@sha256:ba291631c025601e8d3083c339a8ec5960ada990e126665e169eda8c0edb238b"
+        Essential: true
+        LogConfiguration:
+          SecretOptions: []
+          Options:
+            awslogs-group: "/ecs/"
+            awslogs-create-group: "true"
+            awslogs-region: "eu-north-1"
+            awslogs-stream-prefix: "ecs"
+          LogDriver: "awslogs"
+        ResourceRequirements: []
+        EnvironmentFiles: []
+        Name: "ac2-fastapi-backend"
+        MountPoints: []
+        DependsOn: []
+        DockerLabels: {}
+        PortMappings:
+        - ContainerPort: 8000
+          AppProtocol: "http"
+          Protocol: "tcp"
+          HostPort: 8000
+          Name: "ac2-fastapi-backend-8000-tcp"
+        - ContainerPort: 80
+          AppProtocol: "http"
+          Protocol: "tcp"
+          HostPort: 80
+          Name: "ac2-fastapi-backend-80-tcp"
+        DockerSecurityOptions: []
+        SystemControls: []
+        Command: []
+        DnsSearchDomains: []
+        Environment: []
+        Links: []
+        CredentialSpecs: []
+        Ulimits: []
+      Family: "ac2-fastapi-backend"
+      Tags: []
+  LogsLogStreamEcsac2nextjsfrontend991fac849a0f4442b30862642a1b51be:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "ecs/ac2-nextjs-frontend/991fac849a0f4442b30862642a1b51be"
+      LogGroupName:
+        Ref: "LogsLogGroupecsac2frontend"
+  EC2VPC:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::EC2::VPC"
+    DeletionPolicy: "Retain"
+    Properties:
+      CidrBlock: "172.31.0.0/16"
+      EnableDnsSupport: true
+      InstanceTenancy: "default"
+      EnableDnsHostnames: true
+      Tags: []
+  LogsLogStreamEcsac2nextjsfrontendd2cdedef92624eab925618370630f2b3:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "ecs/ac2-nextjs-frontend/d2cdedef92624eab925618370630f2b3"
+      LogGroupName:
+        Ref: "LogsLogGroupecsac2frontend"
+  LogsLogStreamEcsac2fastapibackend841563a5bc6a4a94a3adf795e661e980:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "ecs/ac2-fastapi-backend/841563a5bc6a4a94a3adf795e661e980"
+      LogGroupName:
+        Ref: "LogsLogGroupecs"
+  IAMUserBrandonisverycool:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::User"
+    DeletionPolicy: "Retain"
+    Properties:
+      Path: "/"
+      ManagedPolicyArns:
+      - "arn:aws:iam::aws:policy/IAMUserChangePassword"
+      UserName: "brandon-is-very-cool"
+      LoginProfile:
+        PasswordResetRequired: false
+      Groups:
+      - Ref: "IAMGroupAdmins"
+  ElasticLoadBalancingV2TargetGroupTargetgroupac2backendtg1c595f240db68da4:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    DeletionPolicy: "Retain"
+    Properties:
+      IpAddressType: "ipv4"
+      HealthCheckIntervalSeconds: 30
+      Port: 8000
+      Targets:
+      - AvailabilityZone: "eu-north-1c"
+        Port: 8000
+        Id: "172.31.7.162"
+      HealthCheckEnabled: true
+      UnhealthyThresholdCount: 2
+      HealthCheckTimeoutSeconds: 10
+      Name: "ac2-backend-tg"
+      VpcId:
+        Ref: "EC2VPC"
+      HealthyThresholdCount: 5
+      HealthCheckProtocol: "TCP"
+      TargetGroupAttributes:
+      - Value: "source_ip"
+        Key: "stickiness.type"
+      - Value: "1"
+        Key: "target_group_health.dns_failover.minimum_healthy_targets.count"
+      - Value: "use_load_balancer_configuration"
+        Key: "load_balancing.cross_zone.enabled"
+      - Value: "off"
+        Key: "target_group_health.dns_failover.minimum_healthy_targets.percentage"
+      - Value: "false"
+        Key: "stickiness.enabled"
+      - Value: "off"
+        Key: "target_group_health.unhealthy_state_routing.minimum_healthy_targets.percentage"
+      - Value: "0"
+        Key: "target_health_state.unhealthy.draining_interval_seconds"
+      - Value: "300"
+        Key: "deregistration_delay.timeout_seconds"
+      - Value: "1"
+        Key: "target_group_health.unhealthy_state_routing.minimum_healthy_targets.count"
+      - Value: "false"
+        Key: "proxy_protocol_v2.enabled"
+      - Value: "false"
+        Key: "deregistration_delay.connection_termination.enabled"
+      - Value: "false"
+        Key: "preserve_client_ip.enabled"
+      - Value: "true"
+        Key: "target_health_state.unhealthy.connection_termination.enabled"
+      TargetType: "ip"
+      HealthCheckPort: "traffic-port"
+      Protocol: "TCP"
+      Tags: []
+  LogsLogStreamEcsac2fastapibackend655c0bcc8c214da28c9e11af2a0a71e0:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "ecs/ac2-fastapi-backend/655c0bcc8c214da28c9e11af2a0a71e0"
+      LogGroupName:
+        Ref: "LogsLogGroupecs"
+  LogsLogStreamEcsac2nextjsfrontend94f53611afc743be990c5d8342393f53:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "ecs/ac2-nextjs-frontend/94f53611afc743be990c5d8342393f53"
+      LogGroupName:
+        Ref: "LogsLogGroupecsac2frontend"
+  IAMRoleAWSServiceRoleForSupport:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::Role"
+    DeletionPolicy: "Retain"
+    Properties:
+      Path: "/aws-service-role/support.amazonaws.com/"
+      ManagedPolicyArns:
+      - "arn:aws:iam::aws:policy/aws-service-role/AWSSupportServiceRolePolicy"
+      MaxSessionDuration: 3600
+      RoleName: "AWSServiceRoleForSupport"
+      Description: "Enables resource access for AWS to provide billing, administrative\
+        \ and support services"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Action: "sts:AssumeRole"
+          Effect: "Allow"
+          Principal:
+            Service: "support.amazonaws.com"
+  LogsLogStreamEcsac2nextjsfrontendb075bb008cd649bfadd722cf946d6817:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "ecs/ac2-nextjs-frontend/b075bb008cd649bfadd722cf946d6817"
+      LogGroupName:
+        Ref: "LogsLogGroupecsac2frontend"
+  LogsLogStreamEcsac2nextjsfrontend7af2859590ec4d4ca9b07ffd2e845578:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogStream"
+    DeletionPolicy: "Retain"
+    Properties:
+      LogStreamName: "ecs/ac2-nextjs-frontend/7af2859590ec4d4ca9b07ffd2e845578"
+      LogGroupName:
+        Ref: "LogsLogGroupecsac2frontend"
