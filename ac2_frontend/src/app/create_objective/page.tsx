@@ -54,7 +54,7 @@ export default function CreateObjectivePage() {
         invited_names: users,
         resolution_date: new Date(resolutionDate).toISOString(),
         resolution_strategy: strategy || 'asap',
-        minimum_percentage: optInPercent ? Number(optInPercent) : null,
+        minimum_number: minimumNumber ? Number(minimumNumber) : 1,
         require_identity_verification: requireIdentityVerification,
       };
       

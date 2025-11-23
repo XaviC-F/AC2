@@ -292,21 +292,21 @@ export default function AC2Homepage() {
             {/* Feature Blocks */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
               <div className="border border-white/20 bg-white/5 p-4 sm:p-6">
-                <h4 className="font-light text-sm sm:text-base text-white mb-2">Feature 1</h4>
+                <h4 className="font-light text-sm sm:text-base text-white mb-2">Irrevocable Commitment</h4>
                 <p className="text-xs sm:text-sm text-white/70 leading-relaxed">
-                  [Feature description placeholder]
+                  Once a commitment is made, is cannot be withdrawn or changed.
                 </p>
               </div>
               <div className="border border-white/20 bg-white/5 p-4 sm:p-6">
-                <h4 className="font-light text-sm sm:text-base text-white mb-2">Feature 2</h4>
+                <h4 className="font-light text-sm sm:text-base text-white mb-2">Encrypted Publication</h4>
                 <p className="text-xs sm:text-sm text-white/70 leading-relaxed">
-                  [Feature description placeholder]
+                  You data is published in an encrypted way, which cannot be decrypted until your threshold is met.
                 </p>
               </div>
               <div className="border border-white/20 bg-white/5 p-4 sm:p-6">
-                <h4 className="font-light text-sm sm:text-base text-white mb-2">Feature 3</h4>
+                <h4 className="font-light text-sm sm:text-base text-white mb-2">Reveal With Others</h4>
                 <p className="text-xs sm:text-sm text-white/70 leading-relaxed">
-                  [Feature description placeholder]
+                  The moment your threshold is met, your data is revealed to the world along with everyone else who has met their threshold.
                 </p>
               </div>
             </div>
@@ -446,8 +446,8 @@ export default function AC2Homepage() {
             <div className="flex flex-col gap-4">
               <p className="text-xs uppercase tracking-[0.1em] text-white/60">Legal</p>
               <nav className="flex flex-col gap-3 text-sm uppercase tracking-[0.15em] text-white/70">
-                <a href="#" className="transition hover:text-white no-underline">Privacy</a>
-                <a href="#" className="transition hover:text-white no-underline">Terms</a>
+                <Link href="/privacy" className="transition hover:text-white no-underline">Privacy</Link>
+                <Link href="/terms" className="transition hover:text-white no-underline">Terms</Link>
               </nav>
             </div>
           </div>

@@ -17,6 +17,7 @@ interface ObjectiveWithDetails extends Objective {
 
 type ObjectiveApiResponse = ObjectiveWithDetails & {
   resolution_date?: string;
+  require_identity_verification?: boolean;
 };
 
 function normalizeObjective(data: ObjectiveApiResponse): ObjectiveWithDetails {
