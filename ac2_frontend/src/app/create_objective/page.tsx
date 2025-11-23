@@ -17,6 +17,7 @@ export default function CreateObjectivePage() {
   const [strategy, setStrategy] = useState('DEADLINE');
   const [minimumNumber, setMinimumNumber] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [requireIdentityVerification, setRequireIdentityVerification] = useState(false);
 
   const isTitleTooLong = title.length > TITLE_MAX_LENGTH;
   const isDescriptionTooLong = description.length > DESCRIPTION_MAX_LENGTH;
@@ -52,8 +53,9 @@ export default function CreateObjectivePage() {
         description: description,
         invited_names: users,
         resolution_date: new Date(resolutionDate).toISOString(),
-        resolution_strategy: strategy || 'DEADLINE',
-        minimum_number: minimumNumber ? Number(minimumNumber) : 1,
+        resolution_strategy: strategy || 'asap',
+        minimum_percentage: optInPercent ? Number(optInPercent) : null,
+        require_identity_verification: requireIdentityVerification,
       };
       
       const response = await fetch(`${API_URL}objective`, {
@@ -245,6 +247,35 @@ export default function CreateObjectivePage() {
                     Minimum number of commitments required before any decryption can occur. All encrypted shares below this threshold are set to (0,0) noise for maximum privacy.
                   </div>
                 </div>
+              </div>
+
+              {/* Identity Verification Toggle */}
+              <div className="border border-white/15 bg-white/5 px-4 py-3 sm:px-5 sm:py-4 flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-[10px] sm:text-xs uppercase tracking-[0.15em] text-white/60">
+                    Require Identity Verification
+                  </div>
+                  <p className="text-xs text-white/60 mt-1">
+                    Ask committers to verify before submitting.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setRequireIdentityVerification((v) => !v)}
+                  className={`relative inline-flex h-7 w-14 items-center rounded-full px-1 transition border ${
+                    requireIdentityVerification
+                      ? 'bg-white text-black border-white/40'
+                      : 'bg-white/5 text-white border-white/20'
+                  }`}
+                >
+                  <span
+                    className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-white text-[10px] font-semibold transition-transform ${
+                      requireIdentityVerification ? 'translate-x-6 text-black' : 'translate-x-0 text-white'
+                    }`}
+                  >
+                    {requireIdentityVerification ? 'On' : 'Off'}
+                  </span>
+                </button>
               </div>
 
               {/* Submit Button */}
