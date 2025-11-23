@@ -299,19 +299,56 @@ class CommitDecrypter:
                 key = coeffs[k-1]
                 
                 # Try to decrypt unknown users with threshold=k
-                for u_idx in unknown_users:
-                    ct, _, _ = self.commitments[u_idx]
-                    name = self._decrypt_name(key, ct)
+                # AND also check any remaining users we haven't confirmed yet (who might match at this level)
+                # unknown_users list only contains those NOT in confirmed_thresholds.
+                
+                current_unknowns = list(unknown_users) # Copy
+                for u_idx in current_unknowns:
+                    ct, pts, _ = self.commitments[u_idx]
+                    
+                    # Verify this user actually has data at this level (threshold <= k)
+                    # If their threshold is > k, they have (0,0) here and are just noise
+                    # valid_at_level logic ensures pts[k-1] != (0,0) so threshold <= k.
+                    
+                    # Determine specific threshold for this user
+                    user_threshold = None
+                    for level_idx in range(len(pts)):
+                        if pts[level_idx] != (0, 0):
+                            user_threshold = level_idx + 1
+                            break
+                    
+                    if user_threshold is None or user_threshold > len(coeffs):
+                        continue
+                    
+                    # Decrypt using their specific key
+                    user_key = coeffs[user_threshold - 1]
+                    name = self._decrypt_name(user_key, ct)
+                    
                     if name:
                         revealed_users[u_idx] = name
-                        confirmed_thresholds[u_idx] = k
+                        confirmed_thresholds[u_idx] = user_threshold
                         decryption_details[u_idx] = {
                             'name': name,
-                            'threshold': k,
-                            'coefficients': coeffs,
+                            'threshold': user_threshold,
+                            'coefficients': coeffs, # Store the full set we found
                             'level': k
                         }
+                        # Move from unknown to confirmed for next iterations?
+                        # No, unknown_users loop is static for this iteration.
+                        # But we updated confirmed_thresholds so next k loop will see them as confirmed.
                 
+                # ALSO: Update coefficients for the confirmed users used to recover this!
+                # If they were decrypted at a lower level, they might have fewer coefficients stored.
+                for c_idx in confirmed_users:
+                    if c_idx in decryption_details:
+                         # Update to the larger set of coefficients if we found a higher degree poly
+                         if len(coeffs) > len(decryption_details[c_idx]['coefficients']):
+                             decryption_details[c_idx]['coefficients'] = coeffs
+                             decryption_details[c_idx]['level'] = k
+                
+                # Since we successfully recovered coeffs at this level k using confirmed users,
+                # we might have revealed MORE users just now.
+                # We should continue to the next k level.
                 continue 
             
             # Need to try combinations of unknown users
@@ -382,17 +419,38 @@ class CommitDecrypter:
                     # Check remaining unknown users at this level
                     remaining = [u for u in unknown_users if u not in unknown_subset]
                     for u_idx in remaining:
-                        ct, _, _ = self.commitments[u_idx]
-                        name = self._decrypt_name(key, ct)
+                        ct, pts, _ = self.commitments[u_idx]
+                        
+                        # Determine threshold
+                        user_threshold = None
+                        for level_idx in range(len(pts)):
+                            if pts[level_idx] != (0, 0):
+                                user_threshold = level_idx + 1
+                                break
+                        
+                        if user_threshold is None or user_threshold > len(coeffs):
+                             continue
+
+                        user_key = coeffs[user_threshold - 1]
+                        name = self._decrypt_name(user_key, ct)
+                        
                         if name:
                             revealed_users[u_idx] = name
-                            confirmed_thresholds[u_idx] = k
+                            confirmed_thresholds[u_idx] = user_threshold
                             decryption_details[u_idx] = {
                                 'name': name,
-                                'threshold': k,
+                                'threshold': user_threshold,
                                 'coefficients': coeffs,
                                 'level': k
                             }
+                            
+                    # Update confirmed users with new coefficients if they are longer
+                    for c_idx in confirmed_users:
+                        if c_idx in decryption_details:
+                             if len(coeffs) > len(decryption_details[c_idx]['coefficients']):
+                                 decryption_details[c_idx]['coefficients'] = coeffs
+                                 decryption_details[c_idx]['level'] = k
+
                     break
         
         return sorted(list(revealed_users.values())), decryption_details

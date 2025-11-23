@@ -195,6 +195,89 @@ def is_past_resolution_date(objective):
     today = datetime.utcnow().date()
     return today > res_date.date()
 
+
+def check_and_update_resolution(objective):
+    """
+    Checks if the objective should be resolved (decrypted) or closed based on its strategy and current state.
+    If so, performs decryption, updates the database, and returns the updated objective.
+    """
+    if objective.get("closed"):
+        return objective
+
+    objective_id = objective["_id"]
+    
+    # Determine if we should attempt decryption
+    resolution_strategy = objective.get("resolution_strategy", "ASAP").upper()
+    
+    eligible_names = objective.get("eligible_people") or objective.get("invited_people", [])
+    current_responses = len(objective.get("commitments", []))
+    full_participation = current_responses >= len(eligible_names)
+    
+    # Always attempt decryption to reveal what we can
+    # Strategy only dictates when we STOP accepting commitments (Close)
+    should_attempt_decrypt = current_responses > 0
+    
+    revealed_names = []
+    decryption_details = {}
+
+    if should_attempt_decrypt:
+        try:
+            decrypter = restore_decrypter(objective)
+            revealed_names, decryption_details = decrypter.decrypt_with_details()
+        except Exception as e:
+            logger.error(f"Decryption failed for objective {objective_id}: {e}")
+            return objective
+
+    # Determine if we should close
+    should_close = False
+    if full_participation:
+        should_close = True
+    elif resolution_strategy == "ASAP" and revealed_names:
+        should_close = True
+    elif resolution_strategy == "DEADLINE" and is_past_resolution_date(objective):
+        should_close = True
+        
+    # Check if we need to update DB
+    stored_revealed = set(objective.get("committed_people") or [])
+    new_revealed = set(revealed_names)
+    
+    # We update if we are closing (and weren't closed) OR if the list of revealed people changed
+    has_changes = (should_close != objective.get("closed", False)) or (new_revealed != stored_revealed)
+    
+    if has_changes:
+        # Prepare update
+        updated_commitments = []
+        for idx, commitment in enumerate(objective.get("commitments", [])):
+            updated_commitment = dict(commitment)
+            if idx in decryption_details:
+                detail = decryption_details[idx]
+                updated_commitment["decrypted"] = True
+                updated_commitment["decrypted_name"] = detail["name"]
+                updated_commitment["threshold"] = detail["threshold"]
+                updated_commitment["coefficients"] = [str(c) for c in detail["coefficients"]]
+                updated_commitment["decryption_level"] = detail["level"]
+            else:
+                updated_commitment["decrypted"] = False
+            updated_commitments.append(updated_commitment)
+
+        update_doc = {
+            "closed": should_close,
+            "committed_people": revealed_names,
+            "commitments": updated_commitments,
+            "modified_at": datetime.utcnow().isoformat()
+        }
+        
+        objectives_col.update_one(
+            {"_id": objective_id},
+            {"$set": update_doc}
+        )
+        
+        # Update local object
+        objective.update(update_doc)
+        
+    return objective
+
+
 # -----------------------------------------------------------------------------
 # Endpoints
 # -----------------------------------------------------------------------------
@@ -414,42 +497,7 @@ def serve_view(objective_id: str):
     if not objective:
         raise HTTPException(status_code=404, detail="Objective not found")
     
-    # Check if deadline has passed and objective not yet closed
-    # This handles cases where no one committed after the deadline but it should be resolved now
-    if not objective.get("closed") and is_past_resolution_date(objective):
-        decrypter = restore_decrypter(objective)
-        revealed_names, decryption_details = decrypter.decrypt_with_details()
-        
-        if revealed_names:
-             # Mark commitments as decrypted and add coefficients
-            updated_commitments = []
-            for idx, commitment in enumerate(objective.get("commitments", [])):
-                updated_commitment = dict(commitment)
-                if idx in decryption_details:
-                    detail = decryption_details[idx]
-                    updated_commitment["decrypted"] = True
-                    updated_commitment["decrypted_name"] = detail["name"]
-                    updated_commitment["threshold"] = detail["threshold"]
-                    # Store coefficients as strings
-                    updated_commitment["coefficients"] = [str(c) for c in detail["coefficients"]]
-                    updated_commitment["decryption_level"] = detail["level"]
-                else:
-                    updated_commitment["decrypted"] = False
-                updated_commitments.append(updated_commitment)
-
-            objectives_col.update_one(
-                {"_id": ObjectId(objective_id)},
-                {
-                    "$set": {
-                        "closed": True,
-                        "committed_people": revealed_names,
-                        "commitments": updated_commitments,
-                        "modified_at": datetime.utcnow().isoformat()
-                    }
-                }
-            )
-            # Reload objective
-            objective = objectives_col.find_one({"_id": ObjectId(objective_id)})
+    objective = check_and_update_resolution(objective)
 
     # Convert commitment data for frontend display
     commitments_display = []
@@ -497,7 +545,11 @@ def list_objectives(sort_by: str = "created_at"):
         # Default to newest first (using _id or modified_at)
         cursor = cursor.sort("_id", -1)
         
-    objectives = cursor.limit(50) # Reasonable limit
+    objectives_list = list(cursor.limit(50)) # Reasonable limit
+
+    # Run decryption check for each objective
+    for i in range(len(objectives_list)):
+        objectives_list[i] = check_and_update_resolution(objectives_list[i])
     
     return list(
         map(
@@ -511,7 +563,7 @@ def list_objectives(sort_by: str = "created_at"):
                 "resolution_strategy": o.get("resolution_strategy", "DEADLINE"),
                 "closed": o.get("closed", False)
             },
-            objectives,
+            objectives_list,
         )
     )
 
