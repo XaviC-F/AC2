@@ -235,6 +235,7 @@ def serve_view(objective_id: str):
     resp = {
         "title": objective.get("title"),
         "description": objective.get("description"),
+        "invited_count": len(objective.get("invited_people", [])),
         "resolution_date": objective.get("resolution_date"),
         "published": objective.get("published"),
         "committed_people": objective.get("committed_people") if objective.get("published") else None

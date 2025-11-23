@@ -14,8 +14,8 @@ export default function CreateObjectivePage() {
   const [description, setDescription] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [resolutionDate, setResolutionDate] = useState('');
-  const [strategy, setStrategy] = useState('');
-  const [optInPercent, setOptInPercent] = useState('');
+  const [strategy, setStrategy] = useState('DEADLINE');
+  const [minimumNumber, setMinimumNumber] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isTitleTooLong = title.length > TITLE_MAX_LENGTH;
@@ -52,8 +52,8 @@ export default function CreateObjectivePage() {
         description: description,
         invited_names: users,
         resolution_date: new Date(resolutionDate).toISOString(),
-        resolution_strategy: strategy || 'asap',
-        minimum_percentage: optInPercent ? Number(optInPercent) : null,
+        resolution_strategy: strategy || 'DEADLINE',
+        minimum_number: minimumNumber ? Number(minimumNumber) : 1,
       };
       
       const response = await fetch(`${API_URL}objective`, {
@@ -201,43 +201,49 @@ export default function CreateObjectivePage() {
                 )}
               </div>
 
-              {/* Strategy and Opt-In Percentage Grid */}
+              {/* Strategy and Minimum Number Grid */}
               <div className="grid gap-6 sm:gap-8 md:grid-cols-2">
                 {/* Resolution Strategy */}
                 <div className="group">
                   <label className="block mb-3 text-xs uppercase tracking-[0.15em] text-white/60 mb-2">
                     Resolution Strategy
-                    <span className="ml-2 text-white/40 normal-case font-light">(Optional)</span>
+                    <span className="ml-2 text-white/40 normal-case font-light">(Optional, default: Deadline)</span>
                   </label>
                   <select
                     value={strategy}
                     onChange={(e) => setStrategy(e.target.value)}
                     className="w-full px-4 py-3 bg-white/5 border border-white/20 text-white focus:border-white/40 focus:outline-none focus:bg-white/10 transition-all font-light [color-scheme:dark]"
                   >
-                    <option value="">Select strategy</option>
-                    <option value="asap">As soon as possible</option>
-                    <option value="optimistic">Optimistic</option>
-                    <option value="pessimistic">Pessimistic</option>
-                    <option value="random">Random</option>
+                    <option value="DEADLINE">Deadline</option>
+                    <option value="ASAP">ASAP</option>
                   </select>
+                    <div className="mt-2 text-xs text-white/50">
+                      {strategy === 'ASAP' ? (
+                        <>ASAP: Commitments close immediately when the first threshold is met. No further commitments accepted.</>
+                      ) : (
+                        <>Deadline: Commitments accepted until the resolution date. Decryption occurs as thresholds are met.</>
+                      )}
+                    </div>
                 </div>
 
-                {/* Minimum Opt-In Percentage */}
+                {/* Minimum Number of Commitments */}
                 <div className="group">
                   <label className="block mb-3 text-xs uppercase tracking-[0.15em] text-white/60 mb-2">
-                    Minimum Opt-In %
-                    <span className="ml-2 text-white/40 normal-case font-light">(Optional)</span>
+                    Minimum Commitments
+                    <span className="ml-2 text-white/40 normal-case font-light">(Optional, default: 1)</span>
                   </label>
                   <input
                     type="number"
-                    min={0}
-                    max={100}
+                    min={1}
                     step={1}
-                    value={optInPercent}
-                    onChange={(e) => setOptInPercent(e.target.value)}
+                    value={minimumNumber}
+                    onChange={(e) => setMinimumNumber(e.target.value)}
                     className="w-full px-4 py-3 bg-white/5 border border-white/20 text-white placeholder-white/30 focus:border-white/40 focus:outline-none focus:bg-white/10 transition-all font-light"
-                    placeholder="0-100"
+                    placeholder="1"
                   />
+                  <div className="mt-2 text-xs text-white/50">
+                    Minimum number of commitments required before any decryption can occur. All encrypted shares below this threshold are set to (0,0) noise for maximum privacy.
+                  </div>
                 </div>
               </div>
 

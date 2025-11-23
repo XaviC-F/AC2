@@ -104,10 +104,14 @@ export default function CommitmentPage() {
   const trimmedName = name.trim();
   const isNameTooLong = trimmedName.length > MAX_NAME_LENGTH;
   const isNameValid = trimmedName.length > 0 && !isNameTooLong;
+  const maxCommitNumber = objective?.invited_count || 1; // Group size
   const commitNumberTrimmed = commitNumber.trim();
   const isCommitNumberRequired = selectedChoice !== 'decline';
   const isCommitNumberValid =
-    !isCommitNumberRequired || (/^\d+$/.test(commitNumberTrimmed) && Number(commitNumberTrimmed) >= 2);
+    !isCommitNumberRequired || 
+    (/^\d+$/.test(commitNumberTrimmed) && 
+     Number(commitNumberTrimmed) >= 1 && 
+     Number(commitNumberTrimmed) <= maxCommitNumber);
 
   const handleSubmit = async () => {
     if (
@@ -129,11 +133,11 @@ export default function CommitmentPage() {
 
       const data = {
         name: trimmedName,
-        number: commitNumberTrimmed,
+        Number: parseInt(commitNumberTrimmed),
       };
 
       if (queryParamObjectiveId) {
-        const res = await fetch(`${API_URL}commit?objective_id=${queryParamObjectiveId}`, {
+        const res = await fetch(`${API_URL}commit/${queryParamObjectiveId}`, {
           method: "PATCH",
           headers: {
           "Content-Type": "application/json",
@@ -141,9 +145,25 @@ export default function CommitmentPage() {
           body: JSON.stringify(data),
         });
 
-        if (!res.ok) throw new Error("Commit failed");
-
         const json = await res.json();
+        
+        // Check for specific error messages from backend
+        if (json.message && json.message.includes("already resolved")) {
+          alert("This objective has already been resolved using ASAP strategy. No new commitments are accepted.");
+          window.location.href = `/objective/${queryParamObjectiveId}`;
+          return;
+        }
+        
+        if (json.message && json.message.includes("resolution date has been passed")) {
+          alert("The deadline for this objective has passed. No new commitments are accepted.");
+          return;
+        }
+
+        if (!res.ok && json.message) {
+          throw new Error(json.message);
+        } else if (!res.ok) {
+          throw new Error("Commit failed");
+        }
 
         setIsSubmitted(true);
       }
@@ -378,6 +398,21 @@ export default function CommitmentPage() {
               </div>
             </div>
 
+            {/* Minimum Commitments Warning */}
+            {objective?.minimum_number && objective.minimum_number > 1 && (
+              <div className="mb-6 border border-orange-500/30 bg-orange-500/10 p-4 rounded">
+                <div className="flex items-center gap-2 mb-2">
+                  <Lock className="w-4 h-4 text-orange-400/80" />
+                  <div className="text-sm font-light uppercase tracking-[0.15em] text-orange-400/90">
+                    Minimum Commitment Requirement
+                  </div>
+                </div>
+                <div className="text-sm text-orange-400/70 leading-relaxed">
+                  This objective requires at least <strong className="text-orange-300">{objective.minimum_number} commitments</strong> for any names to be cryptographically revealed.
+                </div>
+              </div>
+            )}
+
             <div className="border-l-2 border-white/30 pl-4 sm:pl-6">
               <div className="text-xs uppercase tracking-[0.15em] text-white/60 mb-1">Resolution Date</div>
               <div className="text-lg font-light text-white">
@@ -445,7 +480,13 @@ export default function CommitmentPage() {
                     const v = e.target.value;
                     if (/^[0-9]*$/.test(v)) setCommitNumber(v);
                   }}
-                  placeholder="Enter a number of people"
+                  placeholder={
+                    selectedChoice === 'decline'
+                      ? 'Not required for declining'
+                      : objective?.minimum_number && objective.minimum_number > 1 
+                        ? `Enter ${objective.minimum_number} or higher` 
+                        : "Enter a number of people"
+                  }
                   disabled={selectedChoice === 'decline'}
                   className={`w-full px-4 py-3 bg-white/5 border text-white placeholder-white/30 focus:outline-none focus:bg-white/10 transition-all font-light ${
                     selectedChoice === 'decline'
@@ -456,8 +497,16 @@ export default function CommitmentPage() {
                   }`}
                   required
                 />
-                {commitNumber.length > 0 && !isCommitNumberValid && (
-                  <p className="text-sm text-red-500/80 mt-2">Please enter a number above 1.</p>
+                {commitNumber.length > 0 && !isCommitNumberValid && selectedChoice !== 'decline' && (
+                  <p className="text-sm text-red-500/80 mt-2">
+                    Please enter a number between 1 and {objective?.invited_count || 'the group size'}.
+                  </p>
+                )}
+                {objective?.minimum_number && objective.minimum_number > 1 && selectedChoice !== 'decline' && (
+                  <p className="text-xs text-orange-400/70 mt-2">
+                    Note: Due to the objective's minimum requirement of {objective.minimum_number} commitments, 
+                    all encrypted shares below level {objective.minimum_number} are automatically set to (0,0) noise for maximum privacy.
+                  </p>
                 )}
               </div>
 

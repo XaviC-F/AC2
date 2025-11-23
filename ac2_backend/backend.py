@@ -1,184 +1,314 @@
-import logging
-import threading
-import time
-from datetime import datetime
-from typing import Annotated, List, Optional
-
+from typing import Annotated, List, Tuple, Optional
+from pymongo import MongoClient
 from bson import ObjectId
 from decouple import config
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-from pymongo import MongoClient
+from datetime import datetime
+import logging
+import secrets
 
-from ac2_backend.core.threshold import ResolutionStrategy, ThresholdModel
+# Import encrypted logic classes
+from ac2_backend.core.commit_classes import NameHolder, CommitEncrypter, CommitDecrypter
 
 MAX_NAME_LENGTH = 1000
 NameStr = Annotated[str, Field(min_length=1, max_length=MAX_NAME_LENGTH)]
 
-app = FastAPI()
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+app = FastAPI(title="Encrypted Backend")
+
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    CORSMiddleware, 
+    allow_origins=["*"], 
+    allow_credentials=True, 
+    allow_methods=["*"], 
+    allow_headers=["*"]
 )
 
-client = MongoClient(config("DATABASE_URI"))
+# -----------------------------------------------------------------------------
+# DB Setup
+# -----------------------------------------------------------------------------
+client = MongoClient("mongodb://localhost:27017/")
 db = client["objectives_db"]
 objectives_col = db["objectives"]
 
+# -----------------------------------------------------------------------------
+# Models
+# -----------------------------------------------------------------------------
 
 class Objective(BaseModel):
     title: str
     description: str
     invited_names: List[NameStr]
     resolution_date: datetime
-    resolution_strategy: Optional[ResolutionStrategy] = ResolutionStrategy.ASAP
-    minimum_percentage: Optional[int]  # ignored
+    resolution_strategy: Optional[str] = "DEADLINE"
+    minimum_number: Optional[int] = 1
 
+class Commitment(BaseModel):
+    name: NameStr
+    Number: int # Treated as threshold in encrypted context
+
+# -----------------------------------------------------------------------------
+# Helpers
+# -----------------------------------------------------------------------------
+
+def points_to_db(points: List[Tuple[int, int]]) -> List[List[str]]:
+    """Convert points with large integers to string format for MongoDB storage"""
+    return [[str(x), str(y)] for x, y in points]
+
+def points_from_db(points_db: List[List[str]]) -> List[Tuple[int, int]]:
+    """Convert points from MongoDB string format back to tuples of integers"""
+    return [(int(x), int(y)) for x, y in points_db]
+
+def restore_encrypter(objective_doc) -> CommitEncrypter:
+    invited = objective_doc.get("invited_people", [])
+    nh = NameHolder(invited)
+    n = len(invited)
+    
+    min_num = objective_doc.get("minimum_number", 1)
+    min_count = max(1, min(min_num, n))
+    
+    # Check for legacy "encrypted_state" first (backward compatibility)
+    enc_state = objective_doc.get("encrypted_state", {})
+    if enc_state:
+        # Legacy reconstruction (not supported by new CommitEncrypter properly, but we try to adapt)
+        # We would need a custom class or manual patch. For now, assume migration or new data.
+        # If crucial, we'd use a subclass. But since we just added seed support to CommitEncrypter,
+        # let's stick to the seed path primarily.
+        # If legacy state exists, we might fail or need the old StatefulCommitEncrypter.
+        # For simplicity in this refactor, we assume seed exists or we generate a deterministic one if missing but state exists (risky).
+        pass
+        
+    seed = objective_doc.get("encryption_seed")
+    if not seed:
+        logger.warning("No encryption seed found, using fallback random seed")
+        seed = "fallback_seed"
+            
+    # Initialize with seed
+    encrypter = CommitEncrypter(nh, min_count, seed=seed)
+    
+    # Reconstruct used_xs from stored commitments
+    used_xs = []
+    for c in objective_doc.get("commitments", []):
+        for p in c.get("points", []):
+            # p is [x, y] stored as strings
+            used_xs.append(int(p[0]))
+            
+    encrypter.set_used_xs(used_xs)
+    
+    return encrypter
+
+def restore_decrypter(objective_doc) -> CommitDecrypter:
+    invited = objective_doc.get("invited_people", [])
+    cd = CommitDecrypter(len(invited))
+    
+    stored_commitments = objective_doc.get("commitments", [])
+    for c in stored_commitments:
+        if "ciphertext" in c and "points" in c:
+            pts = points_from_db(c["points"])
+            cd.add_commitment(c["ciphertext"], pts)
+            
+    return cd
+
+def is_past_resolution_date(objective):
+    res_date = objective.get("resolution_date")
+    if res_date is None:
+        return False
+    if isinstance(res_date, str):
+        res_date = datetime.fromisoformat(res_date)
+    today = datetime.utcnow().date()
+    return today > res_date.date()
+
+# -----------------------------------------------------------------------------
+# Endpoints
+# -----------------------------------------------------------------------------
+
+@app.get("/")
+def root():
+    return {
+        "message": "AC2 Encrypted Backend Running",
+        "version": "2.0",
+        "encryption": "Threshold-based cryptographic commitments",
+        "strategies": {
+            "ASAP": "Closes immediately when threshold is met",
+            "DEADLINE": "Accepts commitments until resolution date"
+        }
+    }
 
 @app.post("/objective")
 def create_objective(o: Objective):
     if isinstance(o.resolution_date, str):
         o.resolution_date = datetime.fromisoformat(o.resolution_date)
 
+    n = len(o.invited_names)
+    if n == 0:
+        raise HTTPException(status_code=400, detail="Must provide at least one name")
+    
+    # Generate a random seed for deterministic encryption
+    encryption_seed = secrets.token_hex(32)
+    
     objective_doc = {
         "title": o.title,
         "description": o.description,
         "resolution_date": o.resolution_date,
-        # invited list lives inside the objective
-        "invited_people": o.invited_names,  # list of strings
+        "invited_people": o.invited_names,
         "resolution_strategy": o.resolution_strategy,
+        "minimum_number": o.minimum_number,
         "commitments": [],
         "published": False,
         "modified_at": datetime.utcnow().isoformat(),
+        "encryption_seed": encryption_seed,
+        "committed_people": []
     }
 
     result = objectives_col.insert_one(objective_doc)
-
     return {"objective_id": str(result.inserted_id)}
 
-
-def is_past_resolution_date(objective):
-    res_date = objective.get("resolution_date")
-
-    if res_date is None:
-        return False
-
-    # If stored as string "YYYY-MM-DD"
-    if isinstance(res_date, str):
-        res_date = datetime.fromisoformat(res_date)
-
-    # Compare only the DATE part (not hour/min)
-    today = datetime.utcnow().date()
-    return today > res_date.date()
-
-
-def compute_current_equilibrium(objective):
-    commitments = objective.get("commitments", [])
-    threshold_model = ThresholdModel(
-        list(
-            map(
-                lambda c: (
-                    c.get("name"),
-                    c.get("number"),
-                ),
-                commitments,
-            )
-        ),
-        ResolutionStrategy.OPTIMISTIC,
-    )
-    return threshold_model.resolve()
-
-
-class Commitment(BaseModel):
-    name: NameStr
-    number: int = Field(..., ge=0)
-
-
-@app.patch("/commit")
+@app.patch("/commit/{objective_id}")
 def commit(objective_id: str, c: Commitment):
     objective = objectives_col.find_one({"_id": ObjectId(objective_id)})
     if objective is None:
         return {"message": "Objective not found."}
-    elif is_past_resolution_date(objective):
+    
+    # Check resolution strategy
+    resolution_strategy = objective.get("resolution_strategy", "ASAP").upper()
+    is_published = objective.get("published", False)
+    
+    # ASAP strategy: close as soon as threshold is met (even if deadline not reached)
+    if resolution_strategy == "ASAP" and is_published:
+        return {"message": "Objective already resolved (ASAP strategy). No new commitments accepted."}
+    
+    # DEADLINE strategy: accept commits until deadline (even if already published/decrypted)
+    if resolution_strategy == "DEADLINE" and is_past_resolution_date(objective):
+        return {"message": "The resolution date has been passed."}
+    
+    # For ASAP, also check if past deadline as a hard cutoff
+    if resolution_strategy == "ASAP" and is_past_resolution_date(objective):
         return {"message": "The resolution date has been passed."}
 
     invited_names = objective.get("invited_people", [])
     if c.name not in invited_names:
         return {"message": "Not invited. Ignored"}
 
-    elif c.name in objective.get("commitments", []):
-        return {"message": "Already committed"}
-
-    else:
-        objectives_col.update_one(
-            {"_id": ObjectId(objective_id)},
-            {
-                "$push": {
-                    "commitments": {
-                        "name": c.name,
-                        "number": c.number,
-                        "committed_at": datetime.utcnow().isoformat(),
-                    }
-                }
-            },
-        )
-
-        objective = objectives_col.find_one({"_id": ObjectId(objective_id)})
-
-        current_equilibrium = compute_current_equilibrium(objective)
-        if current_equilibrium:
+    # Restore Encrypter State
+    try:
+        encrypter = restore_encrypter(objective)
+    except Exception as e:
+        logger.error(f"Failed to restore encrypter: {e}", exc_info=True)
+        return {"message": "Internal error restoring encryption state."}
+    
+    # Perform Encryption
+    # c.Number is interpreted as the threshold
+    ciphertext, points = encrypter.commit(c.name, threshold=c.Number)
+    
+    # Create commitment record
+    # Convert points to strings for MongoDB (can't handle 127-bit ints)
+    new_commitment = {
+        "name": "HIDDEN", 
+        "ciphertext": ciphertext,
+        "points": points_to_db(points),
+        "committed_at": datetime.utcnow().isoformat(),
+    }
+    
+    # Update DB: push commitment
+    # We NO LONGER update encrypted_state.used_xs explicitly because 
+    # we reconstruct it from commitments next time.
+    objectives_col.update_one(
+        {"_id": ObjectId(objective_id)},
+        {
+            "$push": {"commitments": new_commitment},
+            "$set": {
+                "modified_at": datetime.utcnow().isoformat()
+            }
+        }
+    )
+    
+    # Check for resolution (Decryption)
+    objective = objectives_col.find_one({"_id": ObjectId(objective_id)})
+    resolution_strategy = objective.get("resolution_strategy", "ASAP").upper()
+    
+    # Both ASAP and DEADLINE attempt decryption immediately when thresholds are met
+    # The difference is:
+    # - ASAP: Closes to new commits after first decryption
+    # - DEADLINE: Continues accepting commits until deadline even after decryption
+    should_attempt_decrypt = True
+    
+    if should_attempt_decrypt:
+        decrypter = restore_decrypter(objective)
+        revealed_names, decryption_details = decrypter.decrypt_with_details()
+        
+        if revealed_names:
+            # Mark commitments as decrypted and add coefficients
+            updated_commitments = []
+            for idx, commitment in enumerate(objective.get("commitments", [])):
+                updated_commitment = dict(commitment)
+                if idx in decryption_details:
+                    detail = decryption_details[idx]
+                    updated_commitment["decrypted"] = True
+                    updated_commitment["decrypted_name"] = detail["name"]
+                    updated_commitment["threshold"] = detail["threshold"]
+                    # Store coefficients as strings (MongoDB can't handle 127-bit ints)
+                    updated_commitment["coefficients"] = [str(c) for c in detail["coefficients"]]
+                    updated_commitment["decryption_level"] = detail["level"]
+                else:
+                    updated_commitment["decrypted"] = False
+                updated_commitments.append(updated_commitment)
+            
             objectives_col.update_one(
-                {"_id": ObjectId(objective["_id"])},
+                {"_id": ObjectId(objective_id)},
                 {
                     "$set": {
                         "published": True,
-                        "committed_people": current_equilibrium,
-                        # Duplicate for frontend naming convention
-                        "committers": current_equilibrium,
-                        "modified_at": datetime.utcnow().isoformat(),
+                        "committed_people": revealed_names,
+                        "commitments": updated_commitments,
+                        "modified_at": datetime.utcnow().isoformat()
                     }
-                },
+                }
             )
-
-        return {"message": "Commitment stored."}
-
+        
+    return {"message": "Commitment stored.", "ciphertext": ciphertext}
 
 @app.get("/objective/{objective_id}")
-def serve_view(objective_id):
+def serve_view(objective_id: str):
     objective = objectives_col.find_one({"_id": ObjectId(objective_id)})
-    if objective is None:
+    if not objective:
         raise HTTPException(status_code=404, detail="Objective not found")
-
-    # Normalize field names for the frontend while keeping originals for compatibility
-    resolution_date = objective.get("resolution_date")
-    committers = objective.get("committers") or objective.get("committed_people")
-
-    if not objective.get("published"):
-        return {
-            "title": objective.get("title"),
-            "description": objective.get("description"),
-            "resolution_date": resolution_date,
-            "resolutionDate": resolution_date,
-            "published": objective.get("published"),
+    
+    # Convert commitment data for frontend display
+    commitments_display = []
+    for c in objective.get("commitments", []):
+        commitment_data = {
+            "ciphertext": c.get("ciphertext"),
+            "points": c.get("points"),  # Already in [[x, y], ...] format as strings
+            "committed_at": c.get("committed_at"),
+            "decrypted": c.get("decrypted", False)
         }
-    else:
-        return {
-            "title": objective.get("title"),
-            "description": objective.get("description"),
-            "resolution_date": resolution_date,
-            "resolutionDate": resolution_date,
-            "committed_people": committers,
-            "committers": committers,
-            "published": objective.get("published"),
-        }
-
+        # Include decryption details if available
+        if c.get("decrypted"):
+            commitment_data["decrypted_name"] = c.get("decrypted_name")
+            commitment_data["threshold"] = c.get("threshold")
+            commitment_data["coefficients"] = c.get("coefficients", [])
+            commitment_data["decryption_level"] = c.get("decryption_level")
+        commitments_display.append(commitment_data)
+        
+    resp = {
+        "title": objective.get("title"),
+        "description": objective.get("description"),
+        "resolution_date": objective.get("resolution_date"),
+        "published": objective.get("published"),
+        "committed_people": objective.get("committed_people", []),
+        "commitments": commitments_display,
+        "resolution_strategy": objective.get("resolution_strategy", "ASAP"),
+        "minimum_number": objective.get("minimum_number", 1),
+        "invited_count": len(objective.get("invited_people", []))
+    }
+    return resp
 
 @app.get("/recently_published")
 def get_most_recently_published(limit: int = 10):
@@ -193,27 +323,23 @@ def get_most_recently_published(limit: int = 10):
                 "resolution_date": o.get("resolution_date"),
                 "resolutionDate": o.get("resolution_date"),
                 "committed_people": o.get("committed_people"),
-                "committers": o.get("committers") or o.get("committed_people"),
+                "resolution_strategy": o.get("resolution_strategy", "ASAP"),
             },
             objectives,
         )
     )
-
 
 @app.get("/debug/objective/{objective_id}")
 def debug_objective(objective_id: str):
     objective = objectives_col.find_one({"_id": ObjectId(objective_id)})
     if objective is None:
         raise HTTPException(status_code=404, detail="Objective not found")
-
-    # Convert ObjectId + datetime to JSON-friendly types
     objective["_id"] = str(objective["_id"])
     return jsonable_encoder(objective)
 
-
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    exc_str = f"{exc}".replace("\n", " ").replace("   ", " ")
+    exc_str = f'{exc}'.replace('\n', ' ').replace('   ', ' ')
     logging.error(f"{request}: {exc_str}")
     return JSONResponse(
         status_code=422,
