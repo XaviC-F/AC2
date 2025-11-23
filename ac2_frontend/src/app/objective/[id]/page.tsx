@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Objective } from '../data';
 import { useEffect, useState } from 'react';
 import { API_URL } from '@/config/config';
-import { Lock, Hash, Grid3x3, CheckCircle, XCircle } from 'lucide-react';
+import { Lock, Hash, Grid3x3, CheckCircle, XCircle, ArrowRight } from 'lucide-react';
 
 function formatTimeLeft(resolutionDate: string): string {
   const now = new Date();
@@ -32,16 +32,16 @@ export default function ObjectivePage() {
   }
   console.log(objectiveId);
 
-  const commitLink = `http://localhost:3000/commit?objective_id=${objectiveId}`;
+  const objectiveUrl = `http://localhost:3000/objective/${objectiveId}`;
   const shareMessage = `Check out "${obj?.title ?? "this AC2 objective"}" on AC2`;
-  const fullShareText = `${shareMessage}: ${commitLink}`;
+  const fullShareText = `${shareMessage}: ${objectiveUrl}`;
   const shareText = encodeURIComponent(fullShareText);
   const shareQuote = encodeURIComponent(shareMessage);
-  const shareUrl = encodeURIComponent(commitLink);
+  const shareUrl = encodeURIComponent(objectiveUrl);
 
-  async function handleCopyCommitLink() {
+  async function handleCopyLink() {
     try {
-      await navigator.clipboard.writeText(commitLink);
+      await navigator.clipboard.writeText(objectiveUrl);
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 1600);
     } catch (e) {
@@ -145,63 +145,76 @@ export default function ObjectivePage() {
           </div>
 
           {/* Objective Details Card */}
-          <div className="border border-white/20 bg-white/5 p-6 sm:p-8 lg:p-12 backdrop-blur-sm space-y-6 sm:space-y-8">
-            {/* Strategy and Minimum Requirements */}
-            <div className="flex flex-wrap gap-3">
-              {/* Resolution Strategy Badge */}
+          <div className="border border-white/20 bg-white/5 p-6 sm:p-8 lg:p-12 backdrop-blur-sm">
+            
+            {/* Meta Info Row: Strategy, Status, Minimum */}
+            <div className="flex flex-wrap items-start gap-6 sm:gap-8 mb-8 pb-8 border-b border-white/10">
+              
+              {/* Strategy */}
               {obj.resolution_strategy && (
-                <div className="inline-flex items-center gap-2 px-4 py-2 border border-white/20 bg-white/5 rounded">
-                  <div className="text-xs uppercase tracking-[0.15em] text-white/60">Strategy:</div>
-                  <div className={`text-sm font-light ${
-                    obj.resolution_strategy.toUpperCase() === 'ASAP' 
-                      ? 'text-yellow-400/90' 
-                      : 'text-blue-400/90'
-                  }`}>
-                    {obj.resolution_strategy.toUpperCase()}
+                <div>
+                  <div className="text-xs uppercase tracking-[0.15em] text-white/60 mb-2">Strategy</div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-white/20 bg-white/5 rounded">
+                    <span className={`text-sm font-medium ${
+                      obj.resolution_strategy.toUpperCase() === 'ASAP' 
+                        ? 'text-yellow-400/90' 
+                        : 'text-blue-400/90'
+                    }`}>
+                      {obj.resolution_strategy.toUpperCase()}
+                    </span>
                   </div>
-                  <div className="text-xs text-white/50 ml-2">
+                  <div className="text-xs text-white/40 mt-1.5 max-w-[200px]">
                     {obj.resolution_strategy.toUpperCase() === 'ASAP' 
-                      ? '(Closes when threshold met)' 
-                      : '(Accepts commits until deadline)'}
+                      ? 'Closes when any threshold is met' 
+                      : 'Accepts commits until deadline'}
                   </div>
                 </div>
               )}
-              
-              {/* Minimum Commitments Badge */}
-              {obj.minimum_number && obj.minimum_number > 1 && (
-                <div className="inline-flex items-center gap-2 px-4 py-2 border border-orange-500/30 bg-orange-500/10 rounded">
-                  <Lock className="w-3 h-3 text-orange-400/80" />
-                  <div className="text-xs uppercase tracking-[0.15em] text-orange-400/80">
-                    Minimum: {obj.minimum_number} {obj.minimum_number === 1 ? 'Commitment' : 'Commitments'}
+
+              {/* Status / Deadline */}
+              <div>
+                <div className="text-xs uppercase tracking-[0.15em] text-white/60 mb-2">
+                  {obj.closed ? 'Deadline' : 'Status'}
+                </div>
+                {obj.closed ? (
+                  <div className="text-lg font-light text-white">
+                    {new Date(obj.resolutionDate).toLocaleDateString(undefined, {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
                   </div>
-                  <div className="text-xs text-orange-400/60 ml-2">
-                    (Required for any decryption)
+                ) : (
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-white/20 bg-white/5 rounded text-white/90">
+                    {formatTimeLeft(obj.resolutionDate)}
+                  </div>
+                )}
+              </div>
+
+              {/* Minimum Commitments */}
+              {obj.minimum_number && obj.minimum_number > 1 && (
+                <div>
+                  <div className="text-xs uppercase tracking-[0.15em] text-white/60 mb-2">Minimum</div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-orange-500/30 bg-orange-500/10 rounded">
+                    <Lock className="w-3 h-3 text-orange-400/80" />
+                    <span className="text-sm text-orange-400/90">{obj.minimum_number} Commitments</span>
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="border-l-2 border-white/30 pl-4 sm:pl-6">
-              <div className="mb-2 text-xs uppercase tracking-[0.15em] text-white/60">
-                {obj.published ? 'Resolution Date' : 'Status'}
-              </div>
-              {obj.published ? (
-                <time 
-                  dateTime={obj.resolutionDate}
-                  className="text-lg sm:text-xl font-light text-white"
+            {/* Primary Action: Commit Button */}
+            {(!obj.closed || (obj.resolution_strategy === "DEADLINE" && !formatTimeLeft(obj.resolutionDate).includes("Resolved"))) && (
+              <div className="mb-8 pb-8 border-b border-white/10">
+                <Link
+                  href={`/commit?objective_id=${objectiveId}`}
+                  className="group block w-full bg-white text-black text-center py-4 sm:py-5 text-lg sm:text-xl font-medium uppercase tracking-[0.15em] transition hover:bg-white/90 no-underline flex items-center justify-center gap-3"
                 >
-                  {new Date(obj.resolutionDate).toLocaleDateString(undefined, {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </time>
-              ) : (
-                <div className="text-lg sm:text-xl font-light text-white">
-                  {formatTimeLeft(obj.resolutionDate)}
-                </div>
-              )}
-            </div>
+                  Make a Commitment
+                  <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </div>
+            )}
             
             {obj.committers && obj.committers.length > 0 && (
               <div>
@@ -224,8 +237,69 @@ export default function ObjectivePage() {
               </div>
             )}
 
+            <div className="mt-8 sm:mt-10 space-y-3">
+              <div className="text-xs uppercase tracking-[0.15em] text-white/60">Share</div>
+              <div className="flex flex-wrap gap-3">
+                <a
+                  href={`https://x.com/intent/post?text=${shareText}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/30 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                >
+                  <span aria-hidden className="text-[#1DA1F2]">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M17.2 4h2.8l-6.1 6.9L21 20h-5.6l-4.4-5.7L6 20H3.2l6.5-7.4L3 4h5.7l4 5.3L17.2 4Z" />
+                    </svg>
+                  </span>
+                  Share on X
+                </a>
+                <a
+                  href={`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}&quote=${shareQuote}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/30 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                >
+                  <span aria-hidden className="text-[#1877F2]">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M14 8h2.5V4H14c-3 0-5 2-5 5v2H6v4h3v5h4v-5h3l1-4h-4V9.5c0-.9.3-1.5 1-1.5Z" />
+                    </svg>
+                  </span>
+                  Share on Facebook
+                </a>
+                <a
+                  href={`https://www.linkedin.com/sharing/share-offsite/?url=${shareUrl}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/30 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                >
+                  <span aria-hidden className="text-[#0A66C2]">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M19 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2ZM8.34 18.34H5.66V9.4h2.68v8.94ZM7 8.2a1.55 1.55 0 1 1 0-3.1 1.55 1.55 0 0 1 0 3.1Zm11.34 10.14h-2.68v-4.6c0-1.1-.4-1.84-1.38-1.84-.76 0-1.2.51-1.4 1-.07.18-.09.43-.09.68v4.76h-2.67s.04-7.73 0-8.94h2.67v1.27c.36-.56 1-1.36 2.46-1.36 1.8 0 3.19 1.18 3.19 3.71v5.32Z" />
+                    </svg>
+                  </span>
+                  Share on LinkedIn
+                </a>
+              </div>
+            </div>
+
+            <div className="mt-6 sm:mt-8 border border-white/15 bg-black/20 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="space-y-1">
+                <div className="text-xs uppercase tracking-[0.15em] text-white/60">Share Link</div>
+                <div className="text-sm sm:text-base font-light text-white break-all">{objectiveUrl}</div>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className="rounded-full border border-white/30 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                >
+                  {copySuccess ? 'Copied!' : 'Copy link'}
+                </button>
+              </div>
+            </div>
+
             {obj.commitments && obj.commitments.length > 0 && (
-              <div>
+              <div className="mt-8 sm:mt-10">
                 {/* Summary Statistics */}
                 <div className="mb-6 border border-white/20 bg-white/5 p-4 rounded">
                   <div className="flex items-center gap-2 mb-3">
@@ -240,13 +314,13 @@ export default function ObjectivePage() {
                       <div className="text-2xl font-light text-white">{obj.commitments.length}</div>
                     </div>
                     <div>
-                      <div className="text-xs text-white/50 mb-1">Total Invited</div>
-                      <div className="text-2xl font-light text-white">{obj.invited_count || '?'}</div>
+                      <div className="text-xs text-white/50 mb-1">Total Eligible</div>
+                      <div className="text-2xl font-light text-white">{obj.eligible_count || obj.invited_count || '?'}</div>
                     </div>
                     <div>
                       <div className="text-xs text-white/50 mb-1">Remaining</div>
                       <div className="text-2xl font-light text-white">
-                        {obj.invited_count ? obj.invited_count - obj.commitments.length : '?'}
+                        {(obj.eligible_count || obj.invited_count) ? (obj.eligible_count || obj.invited_count || 0) - obj.commitments.length : '?'}
                       </div>
                     </div>
                     <div>
@@ -338,7 +412,9 @@ export default function ObjectivePage() {
                       <div key={idx} className={`border p-3 sm:p-4 ${
                         commitment.decrypted 
                           ? 'border-green-500/30 bg-green-500/5' 
-                          : 'border-white/20 bg-white/5'
+                          : commitment.is_decline
+                            ? 'border-red-500/30 bg-red-500/5'
+                            : 'border-white/20 bg-white/5'
                       }`}>
                         {/* Decryption Status Header */}
                         <div className="flex items-center justify-between mb-3 pb-2 border-b border-white/10">
@@ -350,9 +426,16 @@ export default function ObjectivePage() {
                                   {commitment.decrypted_name}
                                 </div>
                               </>
+                            ) : commitment.is_decline ? (
+                              <>
+                                <XCircle className="w-3 h-3 text-red-500/80 flex-shrink-0" />
+                                <div className="text-xs font-light text-red-500/90">
+                                  Decline Response
+                                </div>
+                              </>
                             ) : (
                               <>
-                                <XCircle className="w-3 h-3 text-white/40 flex-shrink-0" />
+                                <Lock className="w-3 h-3 text-white/40 flex-shrink-0" />
                                 <div className="text-xs font-light text-white/50">
                                   Encrypted
                                 </div>
@@ -406,65 +489,6 @@ export default function ObjectivePage() {
                 </div>
               </div>
             )}
-
-            <div className="mt-8 sm:mt-10 border border-white/15 bg-black/20 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="space-y-1">
-                <div className="text-xs uppercase tracking-[0.15em] text-white/60">Commit Link</div>
-                <div className="text-sm sm:text-base font-light text-white break-all">{commitLink}</div>
-              </div>
-              <button
-                type="button"
-                onClick={handleCopyCommitLink}
-                className="self-start sm:self-auto rounded-full border border-white/30 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
-              >
-                {copySuccess ? 'Copied!' : 'Copy link'}
-              </button>
-            </div>
-
-            <div className="mt-6 sm:mt-8 space-y-3">
-              <div className="text-xs uppercase tracking-[0.15em] text-white/60">Share</div>
-              <div className="flex flex-wrap gap-3">
-                <a
-                  href={`https://x.com/intent/post?text=${shareText}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-white/30 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
-                >
-                  <span aria-hidden className="text-[#1DA1F2]">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M17.2 4h2.8l-6.1 6.9L21 20h-5.6l-4.4-5.7L6 20H3.2l6.5-7.4L3 4h5.7l4 5.3L17.2 4Z" />
-                    </svg>
-                  </span>
-                  Share on X
-                </a>
-                <a
-                  href={`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}&quote=${shareQuote}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-white/30 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
-                >
-                  <span aria-hidden className="text-[#1877F2]">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M14 8h2.5V4H14c-3 0-5 2-5 5v2H6v4h3v5h4v-5h3l1-4h-4V9.5c0-.9.3-1.5 1-1.5Z" />
-                    </svg>
-                  </span>
-                  Share on Facebook
-                </a>
-                <a
-                  href={`https://www.linkedin.com/sharing/share-offsite/?url=${shareUrl}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-white/30 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
-                >
-                  <span aria-hidden className="text-[#0A66C2]">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M19 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2ZM8.34 18.34H5.66V9.4h2.68v8.94ZM7 8.2a1.55 1.55 0 1 1 0-3.1 1.55 1.55 0 0 1 0 3.1Zm11.34 10.14h-2.68v-4.6c0-1.1-.4-1.84-1.38-1.84-.76 0-1.2.51-1.4 1-.07.18-.09.43-.09.68v4.76h-2.67s.04-7.73 0-8.94h2.67v1.27c.36-.56 1-1.36 2.46-1.36 1.8 0 3.19 1.18 3.19 3.71v5.32Z" />
-                    </svg>
-                  </span>
-                  Share on LinkedIn
-                </a>
-              </div>
-            </div>
           </div>
         </div>
       </main>

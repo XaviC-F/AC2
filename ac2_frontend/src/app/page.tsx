@@ -417,9 +417,9 @@ export default function AC2Homepage() {
           <div className="grid gap-8 sm:gap-10 md:grid-cols-2 lg:grid-cols-4">
             <div className="flex flex-col gap-6 text-white/70">
               <div className="flex flex-col gap-3 text-xs uppercase tracking-[0.15em]">
-                <p className="text-lg uppercase tracking-[0.1em] text-white/60 mb-2">AC2</p>
+                <p className="text-lg uppercase tracking-[0.1em] text-white/60 mb-2">AC2:</p>
                 <p className="text-sm text-white/60 leading-relaxed">
-                  Collaborate With Full Privacy
+                  Coordinate Anonymously
                 </p>
               </div>
             </div>

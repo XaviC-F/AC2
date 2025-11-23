@@ -43,7 +43,7 @@ export default function CommitmentPage() {
   const [objective, setObjective] = useState<ObjectiveWithDetails | null>(null);
   const [isLoadingObjective, setIsLoadingObjective] = useState(true);
   const [objectiveError, setObjectiveError] = useState("");
-  const [isPublished, setIsPublished] = useState(false);
+  const [isClosed, setIsClosed] = useState(false);
 
   const objectiveId = searchParams.get('objective_id');
   if (objectiveId && objectiveId != queryParamObjectiveId) {
@@ -71,7 +71,7 @@ export default function CommitmentPage() {
 
         const normalized = normalizeObjective(data);
         setObjective(normalized);
-        setIsPublished(normalized.published);
+        setIsClosed(normalized.closed);
 
       } catch (e) {
         if (!cancelled) setObjectiveError((e instanceof Error ? e.message : String(e)) || "Failed to load objective");
@@ -104,7 +104,7 @@ export default function CommitmentPage() {
   const trimmedName = name.trim();
   const isNameTooLong = trimmedName.length > MAX_NAME_LENGTH;
   const isNameValid = trimmedName.length > 0 && !isNameTooLong;
-  const maxCommitNumber = objective?.invited_count || 1; // Group size
+  const maxCommitNumber = objective?.eligible_count || objective?.invited_count || 1; // Group size
   const commitNumberTrimmed = commitNumber.trim();
   const isCommitNumberRequired = selectedChoice !== 'decline';
   const isCommitNumberValid =
@@ -114,26 +114,33 @@ export default function CommitmentPage() {
      Number(commitNumberTrimmed) <= maxCommitNumber);
 
   const handleSubmit = async () => {
-    if (
-      isPublished ||
-      !selectedChoice ||
-      !isNameValid ||
-      isSubmitting
-    ) return;
+    // Allow submission if strategy is DEADLINE even if published
+    const isDeadlineActive = 
+      objective?.resolution_strategy === "DEADLINE" && 
+      objective?.resolutionDate && 
+    new Date(objective.resolutionDate) > new Date();
+
+  if (
+    (isClosed && !isDeadlineActive) ||
+    !selectedChoice ||
+    !isNameValid ||
+    isSubmitting
+  ) return;
 
     if (selectedChoice === 'decline') {
-      setIsSubmitted(true);
-      return;
+      // For decline, we set Number to -1 to indicate decline
+      // This allows the backend to count the user as having responded without contributing to the threshold
+      // We continue execution to send this to the backend
+    } else {
+        if (!commitNumberTrimmed || !isCommitNumberValid) return;
     }
-
-    if (!commitNumberTrimmed || !isCommitNumberValid) return;
 
     try {
       setIsSubmitting(true);
 
       const data = {
         name: trimmedName,
-        Number: parseInt(commitNumberTrimmed),
+        Number: selectedChoice === 'decline' ? -1 : parseInt(commitNumberTrimmed),
       };
 
       if (queryParamObjectiveId) {
@@ -233,7 +240,12 @@ export default function CommitmentPage() {
   }
 
   // Published state
-  if (isPublished && !isSubmitted) {
+  const isDeadlineActive = 
+    objective?.resolution_strategy === "DEADLINE" && 
+    objective?.resolutionDate && 
+    new Date(objective.resolutionDate) > new Date();
+
+  if (isClosed && !isSubmitted && !isDeadlineActive) {
     return (
       <div className="flex flex-col bg-[#0a0a0a] text-white min-h-screen">
         <header className="relative z-20">
@@ -299,10 +311,10 @@ export default function CommitmentPage() {
                 <CheckCircle className="w-12 h-12 text-white/80" />
               </div>
               <h1 className="text-3xl sm:text-4xl font-light tracking-wide text-white mb-4">
-                {selectedChoice === 'commit' ? 'Commitment Recorded' : 'Declining Recorded'}
+                {selectedChoice === 'commit' ? 'Commitment Recorded' : 'Decline Response Recorded'}
               </h1>
               <p className="text-white/70 text-lg leading-relaxed">
-                Your anonymous {selectedChoice === 'commit' ? 'commitment' : 'response'} has been securely recorded
+                Your anonymous {selectedChoice === 'commit' ? 'commitment' : 'decline response'} has been securely recorded
               </p>
             </div>
 
@@ -319,24 +331,19 @@ export default function CommitmentPage() {
 
             <div className="space-y-4">
               <Link
+                href={`/objective/${queryParamObjectiveId}`}
+                className="group inline-flex items-center justify-center gap-2 w-full px-6 py-3 sm:px-8 sm:py-4 bg-white/10 border border-white/20 text-white font-light text-xs sm:text-sm uppercase tracking-[0.15em] transition hover:bg-white/20 no-underline"
+              >
+                Return to Objective
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
                 href="/objective"
                 className="group inline-flex items-center justify-center gap-2 w-full px-6 py-3 sm:px-8 sm:py-4 bg-white text-black font-light text-xs sm:text-sm uppercase tracking-[0.15em] transition hover:bg-white/90 no-underline"
               >
-                View All Objectives
+                View Other Objectives
                 <ArrowRight className="w-4 h-4" />
               </Link>
-              <button
-                onClick={() => {
-                  setIsSubmitted(false);
-                  setSelectedChoice(null);
-                  setName('');
-                  setCommitNumber('');
-                  setUploadedFiles([]);
-                }}
-                className="w-full px-6 py-3 border border-white/20 bg-white/5 text-white font-light text-xs uppercase tracking-[0.15em] transition hover:border-white/40 hover:bg-white/10"
-              >
-                Make Another Commitment
-              </button>
             </div>
           </div>
         </main>
@@ -422,7 +429,16 @@ export default function CommitmentPage() {
           </div>) : null}
 
           {/* Commitment Form Card */}
-          <div className="border border-white/20 bg-white/5 p-6 sm:p-8 lg:p-12 backdrop-blur-sm">
+          <div className="border border-white/20 bg-white/5 p-6 sm:p-8 lg:p-12 backdrop-blur-sm relative">
+            {queryParamObjectiveId && (
+              <Link 
+                href={`/objective/${queryParamObjectiveId}`}
+                className="absolute top-6 right-6 sm:top-8 sm:right-8 text-xs uppercase tracking-[0.15em] text-white/40 hover:text-white transition-colors no-underline flex items-center gap-2"
+              >
+                Return to Objective
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            )}
             <h3 className="text-xl sm:text-2xl font-light tracking-wide text-white mb-6 sm:mb-8">Your Commitment</h3>
 
             <div className="space-y-6 sm:space-y-8">
@@ -469,8 +485,15 @@ export default function CommitmentPage() {
               {/* Threshold Percentage Field */}
               <div className="group">
                 <label htmlFor="commitNumber" className="block mb-3 text-xs uppercase tracking-[0.15em] text-white/60 mb-2">
-                  Required number of commitments for your reveal <span className="text-white/40 normal-case font-light">*</span>
+                  Your commitment threshold <span className="text-white/40 normal-case font-light">*</span>
                 </label>
+                
+                <p className="text-xs text-white/60 mb-3">Your <strong>commitment threshold</strong> means:&quot;I am happy for my name to be revealed as long as at least <strong>this many</strong> names are revealed, <i>including mine</i>.&quot;</p>
+                <ul className="list-disc pl-4 text-xs text-white/60 mb-3 space-y-1">
+                  <li>For example, if your threshold is 3, and 4 other names are revealed, your name will be revealed.</li>
+                  <li>If your threshold is 3, and only 2 other names are revealed, your name will also be revealed as there are 3 people total including you.</li>
+                  <li>If your threshold is 3, and 3 other names are revealed, your name will be revealed.</li>
+                </ul>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -497,15 +520,15 @@ export default function CommitmentPage() {
                   }`}
                   required
                 />
-                {commitNumber.length > 0 && !isCommitNumberValid && selectedChoice !== 'decline' && (
+                {commitNumber.length > 0 && !isCommitNumberValid && (
                   <p className="text-sm text-red-500/80 mt-2">
-                    Please enter a number between 1 and {objective?.invited_count || 'the group size'}.
+                    Please enter a number between 1 and {objective?.eligible_count || objective?.invited_count || 'the group size'}.
                   </p>
                 )}
                 {objective?.minimum_number && objective.minimum_number > 1 && selectedChoice !== 'decline' && (
                   <p className="text-xs text-orange-400/70 mt-2">
-                    Note: Due to the objective's minimum requirement of {objective.minimum_number} commitments, 
-                    all encrypted shares below level {objective.minimum_number} are automatically set to (0,0) noise for maximum privacy.
+                    Note: Due to the objective's requirement of at least {objective.minimum_number} commitments, 
+                    the smallest number of names that will be revealed is {objective.minimum_number}.
                   </p>
                 )}
               </div>
@@ -531,7 +554,7 @@ export default function CommitmentPage() {
                     </div>
                     <div className="flex-1">
                       <div className="font-light text-lg text-white mb-1">Yes, I Commit</div>
-                      <div className="text-sm text-white/60">I will participate if the threshold is met</div>
+                      <div className="text-sm text-white/60">I will participate if my commitment threshold is met</div>
                     </div>
                   </div>
                 </button>
@@ -614,14 +637,16 @@ export default function CommitmentPage() {
                 <div className="flex gap-3">
                   <Lock className="w-5 h-5 text-white/60 flex-shrink-0 mt-0.5" />
                   <div className="text-sm text-white/70 leading-relaxed">
-                    <strong className="text-white font-light">Privacy Guarantee:</strong> Your commitment is encrypted and anonymized.
-                    No one, including the organizer, can see individual responses. Only aggregate statistics are visible.
+                    <strong className="text-white font-light">Privacy Guarantee:</strong> Your commitment is encrypted and anonymized until your commitment threshold is reached.
+                    No one, including the organizer, can see individual responses before then. Only aggregate statistics are visible.
                   </div>
                 </div>
               </div>
 
               {/* Submit Button */}
               <div className="pt-4 sm:pt-6 border-t border-white/10">
+                <p className="text-center text-xs text-white/50 mb-6">THIS ACTION IS IRREVERSIBLE: YOU CANNOT CHANGE YOUR COMMITMENT AFTER SUBMITTING</p>
+                
                 <button
                   onClick={handleSubmit}
                   disabled={
@@ -632,10 +657,9 @@ export default function CommitmentPage() {
                   }
                   className="group inline-flex items-center justify-center gap-2 w-full px-6 py-3 sm:px-8 sm:py-4 bg-white text-black font-light text-xs sm:text-sm uppercase tracking-[0.15em] transition hover:bg-white/90 disabled:opacity-30 disabled:cursor-not-allowed"
                 >
-                  {isSubmitting ? 'Submitting Securely...' : 'Submit My Commitment'}
+                  {isSubmitting ? 'Submitting Securely...' : (selectedChoice === 'decline' ? 'Submit Decline Response' : 'Submit My Commitment')}
                   {!isSubmitting && <ArrowRight className="w-4 h-4" />}
                 </button>
-                <p className="text-center text-xs text-white/50 mt-4">You can change your commitment anytime before the deadline</p>
               </div>
             </div>
           </div>
