@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Objective } from '../data';
 import { useEffect, useState } from 'react';
 import { API_URL } from '@/config/config';
-import { Lock, Hash, Grid3x3, CheckCircle, XCircle, ArrowRight } from 'lucide-react';
+import { Lock, Hash, Grid3x3, CheckCircle, XCircle, ArrowRight, QrCode } from 'lucide-react';
 
 function formatTimeLeft(resolutionDate: string): string {
   const now = new Date();
@@ -32,12 +32,15 @@ export default function ObjectivePage() {
   }
   console.log(objectiveId);
 
-  const objectiveUrl = `http://localhost:3000/objective/${objectiveId}`;
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+  const objectiveUrl = `${origin}/objective/${objectiveId}`;
+  const commitUrl = `${origin}/commit?objective_id=${objectiveId}`;
   const shareMessage = `Check out "${obj?.title ?? "this AC2 objective"}" on AC2`;
   const fullShareText = `${shareMessage}: ${objectiveUrl}`;
   const shareText = encodeURIComponent(fullShareText);
   const shareQuote = encodeURIComponent(shareMessage);
   const shareUrl = encodeURIComponent(objectiveUrl);
+  const qrImageSrc = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(commitUrl)}`;
 
   async function handleCopyLink() {
     try {
@@ -295,6 +298,25 @@ export default function ObjectivePage() {
                 >
                   {copySuccess ? 'Copied!' : 'Copy link'}
                 </button>
+              </div>
+            </div>
+
+            <div className="mt-6 sm:mt-8 border border-white/15 bg-black/20 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <QrCode className="w-6 h-6 text-white/70 mt-1" />
+                <div>
+                  <div className="text-xs uppercase tracking-[0.15em] text-white/60">Commit via QR</div>
+                  <div className="text-sm text-white/70">Scan to open the commitment form for this objective.</div>
+                  <div className="text-xs text-white/50 mt-1 break-all">{commitUrl}</div>
+                </div>
+              </div>
+              <div className="flex items-center justify-center bg-white p-3">
+                <img
+                  src={qrImageSrc}
+                  alt="QR code to commitment form"
+                  className="w-40 h-40 object-contain"
+                  loading="lazy"
+                />
               </div>
             </div>
 
