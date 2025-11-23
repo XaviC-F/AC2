@@ -497,12 +497,12 @@ export default function CommitmentPage() {
                   }`}
                   required
                 />
-                {commitNumber.length > 0 && !isCommitNumberValid && selectedChoice !== 'decline' && (
+                {commitNumber.length > 0 && !isCommitNumberValid && selectedChoice === 'commit' && (
                   <p className="text-sm text-red-500/80 mt-2">
                     Please enter a number between 1 and {objective?.invited_count || 'the group size'}.
                   </p>
                 )}
-                {objective?.minimum_number && objective.minimum_number > 1 && selectedChoice !== 'decline' && (
+                {objective?.minimum_number && objective.minimum_number > 1 && selectedChoice === 'commit' && (
                   <p className="text-xs text-orange-400/70 mt-2">
                     Note: Due to the objective's minimum requirement of {objective.minimum_number} commitments, 
                     all encrypted shares below level {objective.minimum_number} are automatically set to (0,0) noise for maximum privacy.
