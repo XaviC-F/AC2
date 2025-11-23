@@ -66,16 +66,9 @@ jobs:
         docker tag $IMAGE_URI $ECR_REGISTRY/$ECR_REPOSITORY:latest
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-    - name: Download current task definition
+    - name: Force ECS service redeployment
       run: |
-        aws ecs describe-task-definition \
-          --task-definition $TASK_DEFINITION \
-          --query taskDefinition > task-definition.json
-
-    - name: Update task definition with new image
-      id: task-def
-      uses: aws-actions/amazon-ecs-render-task-definition@v1
-      with:
-        task-definition: task-definition.json
-        container-name: ${{ env.CONTAINER_NAME }}
-        image: "675175159409.dkr.ecr.eu-north-1.amazonaws.com/ac2-frontend"
+        aws ecs update-service \
+          --cluster $ECS_CLUSTER \
+          --service $ECS_SERVICE \
+          --force-new-deployment

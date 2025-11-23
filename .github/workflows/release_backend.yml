@@ -80,3 +80,10 @@ jobs:
         task-definition: task-definition.json
         container-name: ${{ env.CONTAINER_NAME }}
         image: "675175159409.dkr.ecr.eu-north-1.amazonaws.com/ac2-backend"
+
+    - name: Force ECS service redeployment
+      run: |
+        aws ecs update-service \
+          --cluster $ECS_CLUSTER \
+          --service $ECS_SERVICE \
+          --force-new-deployment
