@@ -58,7 +58,7 @@ jobs:
         echo "Building image: $IMAGE_URI"
 
         # Build the Docker image
-        docker build -t $IMAGE_URI -f ac2_backend/dockerfile ac2_backend
+        docker build -t $IMAGE_URI -f ac2_backend/dockerfile .
 
         # Push the image to ECR
         docker push $IMAGE_URI
