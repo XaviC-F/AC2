@@ -51,6 +51,7 @@ export default function ObjectiveList({ title, pageItems, route }: ObjectiveProp
   let page = 1;
   try {
     page = Number(searchParams.get('page') || "");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (_) {
     // ignore
   }
