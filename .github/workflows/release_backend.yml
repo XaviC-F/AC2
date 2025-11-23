@@ -49,7 +49,7 @@ jobs:
 
     - name: Build and push Docker image
       id: build-image
-      working-directory: ./ac2_backend
+      working-directory: .
       run: |
         # Generate image tag using git commit SHA and timestamp
         IMAGE_TAG="${GITHUB_SHA:0:8}-$(date +%s)"
@@ -58,7 +58,7 @@ jobs:
         echo "Building image: $IMAGE_URI"
 
         # Build the Docker image
-        docker build -t $IMAGE_URI .
+        docker build -t $IMAGE_URI -f ac2_backend/dockerfile ac2_backend
 
         # Push the image to ECR
         docker push $IMAGE_URI
