@@ -583,7 +583,7 @@ export default function CommitmentPage() {
               </div>
 
               {/* File Upload */}
-              <div className="group">
+              {/* <div className="group">
                 <label className="block mb-3 text-xs uppercase tracking-[0.15em] text-white/60 mb-2">
                   Supporting Documents
                   <span className="ml-2 text-white/40 normal-case font-light">(Optional)</span>
@@ -628,7 +628,7 @@ export default function CommitmentPage() {
                     ))}
                   </div>
                 )}
-              </div>
+              </div> */}
 
               {/* Privacy Notice */}
               <div className="border border-white/20 bg-white/5 rounded-xl p-4 sm:p-6">
