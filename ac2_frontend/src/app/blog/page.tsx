@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ArrowLeft } from 'lucide-react';
 import { blogPosts } from './data';
 
 export default function BlogPage() {
@@ -16,12 +16,23 @@ export default function BlogPage() {
           <Link href="/" className="text-xl sm:text-2xl font-light uppercase tracking-[0.2em] text-white transition hover:text-white/80 no-underline">
             AC2
           </Link>
-          <Link 
-            href="/" 
-            className="text-xs uppercase tracking-[0.2em] text-white/70 transition hover:text-white no-underline"
-          >
-            Home
-          </Link>
+          <div className="hidden sm:flex items-center gap-6 lg:gap-8 text-xs uppercase tracking-[0.2em] text-white/70">
+            <a href="/#problem" className="group relative transition hover:text-white after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-px after:bg-current after:transition-all after:duration-300 hover:after:w-full">
+              The Problem
+            </a>
+            <a href="/#how-it-works" className="group relative transition hover:text-white after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-px after:bg-current after:transition-all after:duration-300 hover:after:w-full">
+              How It Works
+            </a>
+            <Link href="/blog" className="group relative transition hover:text-white after:absolute after:bottom-[-4px] after:left-0 after:w-full after:h-px after:bg-current no-underline">
+              Blog
+            </Link>
+            <a href="/#get-started" className="group relative transition hover:text-white after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-px after:bg-current after:transition-all after:duration-300 hover:after:w-full">
+              Get Started
+            </a>
+          </div>
+          <div className="sm:hidden flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-white/70">
+            <Link href="/" className="transition hover:text-white no-underline">Home</Link>
+          </div>
         </nav>
         <div className="mx-auto mt-4 sm:mt-8 w-full max-w-6xl border-t border-white/10"></div>
       </header>
@@ -29,6 +40,17 @@ export default function BlogPage() {
       {/* Main Content */}
       <main className="relative z-10 mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 pb-12 sm:px-6 sm:pb-20 lg:px-16">
         <div className="mt-12 sm:mt-20 md:mt-32">
+          {/* Back to Home Link */}
+          <div className="mb-8">
+            <Link 
+              href="/"
+              className="inline-flex items-center gap-2 px-4 py-2 border border-white/20 bg-white/5 text-white/70 hover:text-white hover:border-white/40 hover:bg-white/10 transition-all no-underline text-xs uppercase tracking-[0.15em]"
+            >
+              <ArrowRight className="w-4 h-4 rotate-180" />
+              <span>Back to Home</span>
+            </Link>
+          </div>
+          
           {/* Section Header */}
           <div className="mb-8 sm:mb-12">
             <div className="mb-4 sm:mb-6 inline-block">

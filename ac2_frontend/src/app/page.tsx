@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Shield, Users, Lock, ChevronRight, Plus, List, FileSignature, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { getUseCaseDescription } from '@/app/blog/useCases';
 
 export default function AC2Homepage() {
   const router = useRouter();
@@ -13,21 +14,21 @@ export default function AC2Homepage() {
   const useCases = [
     {
       title: "Labor Organizing",
-      description: "Amazon workers want to unionize, but only if they know 10,000+ others will join them. Without this certainty, individuals risk retaliation while the effort fails.",
+      description: getUseCaseDescription("labor-organizing") || "Amazon workers want to unionize, but only if they know 10,000+ others will join them. Without this certainty, individuals risk retaliation while the effort fails.",
       icon: Users,
       color: "blue",
       slug: "labor-organizing"
     },
     {
       title: "Political Change",
-      description: "Citizens in an authoritarian regime oppose the government but won't speak out unless they know the majority shares their views. Fear of being the only dissenter keeps everyone silent.",
+      description: getUseCaseDescription("political-change") || "Citizens in an authoritarian regime oppose the government but won't speak out unless they know the majority shares their views. Fear of being the only dissenter keeps everyone silent.",
       icon: Shield,
       color: "purple",
       slug: "political-change"
     },
     {
       title: "Speaking Truth to Power",
-      description: "Harvey Weinstein's victims knew they weren't alone, but each woman feared going public without others. The first to speak out faced the full weight of his power and disbelief.",
+      description: getUseCaseDescription("speaking-truth-to-power") || "Harvey Weinstein's victims knew they weren't alone, but each woman feared going public without others. The first to speak out faced the full weight of his power and disbelief.",
       icon: Lock,
       color: "red",
       slug: "speaking-truth-to-power"
@@ -150,7 +151,7 @@ export default function AC2Homepage() {
               <div className="mt-8 sm:mt-12 grid grid-cols-2 gap-4 sm:gap-8 border-t border-white/10 pt-6 sm:pt-8">
                 <div className="group">
                   <div className="mb-2 text-2xl sm:text-3xl font-light text-white transition-colors group-hover:text-white/80">Anonymous</div>
-                  <div className="text-xs sm:text-sm uppercase tracking-wider text-white/60">Until Collective</div>
+                  <div className="text-xs sm:text-sm uppercase tracking-wider text-white/60">Until Threshold Met</div>
                 </div>
                 <div className="group">
                   <div className="mb-2 text-2xl sm:text-3xl font-light text-white transition-colors group-hover:text-white/80">Credible</div>
@@ -439,6 +440,7 @@ export default function AC2Homepage() {
             <div className="flex flex-col gap-4">
               <p className="text-xs uppercase tracking-[0.1em] text-white/60">Resources</p>
               <nav className="flex flex-col gap-3 text-sm uppercase tracking-[0.15em] text-white/70">
+                <Link href="/blog" className="transition hover:text-white no-underline">Blog</Link>
                 <Link href="/objective" className="transition hover:text-white no-underline">Objectives</Link>
               </nav>
             </div>

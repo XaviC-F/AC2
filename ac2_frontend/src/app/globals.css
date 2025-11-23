@@ -45,6 +45,37 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
+/* Ensure all spans in blog content are inline and don't break flow */
+.blog-content > span {
+  display: inline !important;
+  white-space: normal;
+}
+
+/* Ensure paragraphs and their inline content flow properly */
+.blog-content p {
+  display: block;
+}
+
+/* All spans within paragraphs must be inline */
+.blog-content p > span,
+.blog-content p span,
+.blog-content p > * > span {
+  display: inline !important;
+  white-space: normal;
+}
+
+/* Ensure inline elements stay inline within paragraphs */
+.blog-content p strong,
+.blog-content p em,
+.blog-content p a,
+.blog-content p code {
+  display: inline !important;
+}
+
+.blog-content p br {
+  display: block !important;
+}
+
 .blog-content p {
   margin-bottom: 1.5rem;
   line-height: 1.75;
@@ -96,10 +127,35 @@ body {
   font-size: 1.1em;
 }
 
+/* Inline math wrappers must stay inline to preserve paragraph structure */
+.blog-content .inline-math-wrapper,
+.blog-content .inline-math-wrapper > span,
+.blog-content .inline-math-placeholder {
+  display: inline !important;
+  white-space: nowrap;
+}
+
+/* Inline math KaTeX rendering */
+.blog-content .inline-math-wrapper .katex {
+  display: inline !important;
+  font-size: 1em;
+}
+
+/* Ensure KaTeX inline math doesn't break */
+.blog-content .katex:not(.katex-display) {
+  display: inline !important;
+}
+
+/* Block math uses inline-block for proper display */
+.blog-content .katex-display .katex {
+  display: inline-block;
+}
+
 .blog-content .katex-display {
   margin: 1.5rem 0;
   overflow-x: auto;
   overflow-y: hidden;
+  display: block;
 }
 
 .blog-content .katex-display > .katex {
@@ -108,6 +164,13 @@ body {
   max-width: 100%;
   overflow-x: auto;
   text-align: initial;
+}
+
+/* Ensure vdots (vertical dots) are visible */
+.blog-content .katex .mord.vdots,
+.blog-content .katex .mord.vdots::before {
+  color: white;
+  opacity: 1;
 }
 
 /* Legal content styling */
