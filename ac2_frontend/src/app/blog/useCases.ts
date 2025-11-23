@@ -6,6 +6,9 @@ export interface UseCaseDescription {
 }
 
 export const useCaseDescriptions: Record<string, UseCaseDescription> = {
+  "coup-organisation": {
+    "description": "Some forms of political violence are organised by a small group of people who are able to coordinate their violence against a target. While some of these will benefit from increased coordination, so will the resistance against them."
+  },
   "political-change": {
     "description": "How anonymous credible commitments can help citizens and politians coordinate their efforts to bring about change, despite power structures which seek to suppress dissent."
   },
