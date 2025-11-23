@@ -1,5 +1,6 @@
 'use client';
 
+import { useLayoutEffect } from 'react';
 import { notFound, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
@@ -66,6 +67,27 @@ function BlogContent({ content }: { content: string }) {
 export default function BlogPostPage() {
   const params = useParams();
   const post = getBlogPostBySlug(params.slug as string);
+
+  // Scroll to top when the page loads or slug changes
+  useLayoutEffect(() => {
+    // Disable Next.js scroll restoration for this route
+    if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+    // Scroll to top immediately and aggressively
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    
+    // Also scroll after multiple delays to catch any late scroll restoration
+    const timeouts = [
+      setTimeout(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }), 0),
+      setTimeout(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }), 10),
+      setTimeout(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }), 50),
+    ];
+    
+    return () => timeouts.forEach(clearTimeout);
+  }, [params.slug]);
 
   if (!post) {
     return notFound();

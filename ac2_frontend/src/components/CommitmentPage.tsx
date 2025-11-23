@@ -375,9 +375,6 @@ export default function CommitmentPage() {
         <div className="mt-12 sm:mt-20 md:mt-32">
           {/* Section Header */}
           <div className="mb-8 sm:mb-12">
-            <div className="mb-4 sm:mb-6 inline-block">
-              <div className="h-px w-12 sm:w-16 bg-white/40"></div>
-            </div>
             <div className="inline-flex items-center gap-2 border border-white/20 bg-white/5 px-4 py-2 mb-6">
               <Lock className="w-4 h-4 text-white/60" />
               <span className="text-xs uppercase tracking-[0.15em] text-white/60">Anonymous & Secure</span>
