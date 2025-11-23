@@ -11,16 +11,43 @@ if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
-// Read all JSON config files
-const configFiles = fs.readdirSync(configsDir).filter(file => file.endsWith('.json'));
+// Read all JSON config files (excluding mathematical-details which uses static HTML)
+const configFiles = fs.readdirSync(configsDir).filter(file => 
+  file.endsWith('.json') && file !== 'mathematical-details.json'
+);
 
 console.log(`Found ${configFiles.length} blog post configs`);
 
-// Read all blog posts
-const allPosts = configFiles.map(file => {
+// Read all blog posts from JSON configs
+const jsonPosts = configFiles.map(file => {
   const configPath = path.join(configsDir, file);
   return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-}).sort((a, b) => {
+});
+
+// Add hardcoded entry for mathematical-details (uses static HTML)
+const staticHtmlDir = path.join(__dirname, '../src/app/blog/static');
+const staticHtmlFile = path.join(staticHtmlDir, 'mathematical-details.html');
+
+let mathematicalDetailsContent = "";
+if (fs.existsSync(staticHtmlFile)) {
+  mathematicalDetailsContent = fs.readFileSync(staticHtmlFile, 'utf-8');
+  console.log('Loaded static HTML for mathematical-details');
+} else {
+  console.warn('Warning: mathematical-details.html not found, using empty content');
+}
+
+const mathematicalDetailsPost = {
+  slug: "mathematical-details",
+  title: "The Mathematical Framework of Anonymous Credible Commitments",
+  date: "November 21, 2025",
+  excerpt: "A detailed mathematical treatment of the cryptographic scheme underlying anonymous credible commitments, including formal definitions, security properties, and proofs.",
+  description: "Mathematical foundations and cryptographic guarantees of the AC2 system, with ID verification and decentralised decryption.",
+  content: mathematicalDetailsContent,
+  isStaticHtml: true // Flag to indicate this uses static HTML
+};
+
+// Combine all posts
+const allPosts = [...jsonPosts, mathematicalDetailsPost].sort((a, b) => {
   // Parse dates in format "Month Day, Year" (e.g., "November 22, 2025")
   const dateA = new Date(a.date);
   const dateB = new Date(b.date);
@@ -39,6 +66,7 @@ export interface BlogPost {
   excerpt: string;
   description: string;
   content: string;
+  isStaticHtml?: boolean;
 }
 
 export const blogPosts: BlogPost[] = ${JSON.stringify(allPosts, null, 2)};

@@ -45,10 +45,30 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
-/* Ensure all spans in blog content are inline and don't break flow */
-.blog-content > span {
+/* LaTeX placeholders must stay inline to preserve paragraph structure */
+.blog-content .latex-inline-placeholder {
   display: inline !important;
-  white-space: normal;
+  white-space: nowrap;
+  vertical-align: baseline;
+}
+
+.blog-content .latex-block-placeholder {
+  display: block;
+  margin: 1.5rem 0;
+}
+
+/* Rendered KaTeX inline math */
+.blog-content .katex-inline,
+.blog-content .katex-inline .katex {
+  display: inline !important;
+  font-size: 1em;
+  vertical-align: baseline;
+}
+
+/* Rendered KaTeX block math */
+.blog-content .katex-block {
+  display: block;
+  margin: 1.5rem 0;
 }
 
 /* Ensure paragraphs and their inline content flow properly */
