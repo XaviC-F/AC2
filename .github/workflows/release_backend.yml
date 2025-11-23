@@ -44,7 +44,7 @@ jobs:
       id: login-ecr-public
       uses: aws-actions/amazon-ecr-login@v2
       with:
-        registry-type: public
+        registry-type: private
         mask-password: 'true'
 
     - name: Build and push Docker image
