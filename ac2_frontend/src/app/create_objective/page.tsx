@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowRight, Upload } from 'lucide-react';
+import { ArrowRight, Upload, Lock, Unlock } from 'lucide-react';
 import { API_URL } from '@/config/config';
 
 export default function CreateObjectivePage() {
@@ -16,6 +16,7 @@ export default function CreateObjectivePage() {
   const [resolutionDate, setResolutionDate] = useState('');
   const [strategy, setStrategy] = useState('DEADLINE');
   const [minimumNumber, setMinimumNumber] = useState('');
+  const [visibility, setVisibility] = useState('private');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [requireIdentityVerification, setRequireIdentityVerification] = useState(false);
 
@@ -51,11 +52,12 @@ export default function CreateObjectivePage() {
       const data = {
         title: title,
         description: description,
-        invited_names: users,
+        eligible_names: users,
         resolution_date: new Date(resolutionDate).toISOString(),
-        resolution_strategy: strategy || 'asap',
+        resolution_strategy: strategy || 'DEADLINE',
         minimum_number: minimumNumber ? Number(minimumNumber) : 1,
         require_identity_verification: requireIdentityVerification,
+        visibility: visibility,
       };
       
       const response = await fetch(`${API_URL}objective`, {
@@ -165,7 +167,7 @@ export default function CreateObjectivePage() {
               {/* File Upload */}
               <div className="group">
                 <label className="block mb-3 text-xs uppercase tracking-[0.15em] text-white/60 mb-2">
-                  Invited Users (CSV)
+                  Eligible Users (CSV)
                   <span className="ml-2 text-white/40 normal-case font-light">(Optional)</span>
                 </label>
                 <div className="relative border border-dashed border-white/20 bg-white/5 p-6 sm:p-8 transition-all hover:border-white/40 hover:bg-white/10 group">
@@ -189,7 +191,7 @@ export default function CreateObjectivePage() {
               {/* Resolution Date */}
               <div className="group">
                 <label className="block mb-3 text-xs uppercase tracking-[0.15em] text-white/60 mb-2">
-                  Resolution Date
+                  Deadline
                 </label>
                 <input
                   type="date"
@@ -201,6 +203,44 @@ export default function CreateObjectivePage() {
                 {isResolutionDateInvalid && (
                   <p className="mt-2 text-xs text-red-400">Please choose a future date.</p>
                 )}
+              </div>
+
+              {/* Visibility */}
+              <div className="group">
+                <label className="block mb-3 text-xs uppercase tracking-[0.15em] text-white/60 mb-2">
+                  Visibility
+                </label>
+                <div className="inline-flex bg-white/5 border border-white/20 rounded-full p-1">
+                  <button
+                    type="button"
+                    onClick={() => setVisibility('private')}
+                    className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all ${
+                      visibility === 'private'
+                        ? 'bg-white text-black shadow-sm'
+                        : 'text-white/60 hover:text-white'
+                    }`}
+                  >
+                    <Lock className="w-4 h-4" />
+                    <span className="text-sm font-medium uppercase tracking-wider">Private</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVisibility('public')}
+                    className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all ${
+                      visibility === 'public'
+                        ? 'bg-white text-black shadow-sm'
+                        : 'text-white/60 hover:text-white'
+                    }`}
+                  >
+                    <Unlock className="w-4 h-4" />
+                    <span className="text-sm font-medium uppercase tracking-wider">Public</span>
+                  </button>
+                </div>
+                <div className="mt-2 text-xs text-white/50">
+                  {visibility === 'private' 
+                    ? 'Only accessible via direct link. Not listed on the browse page.' 
+                    : 'Visible to everyone on the browse page.'}
+                </div>
               </div>
 
               {/* Strategy and Minimum Number Grid */}
@@ -223,7 +263,7 @@ export default function CreateObjectivePage() {
                       {strategy === 'ASAP' ? (
                         <>ASAP: Commitments close immediately when the first threshold is met. No further commitments accepted.</>
                       ) : (
-                        <>Deadline: Commitments accepted until the resolution date. Decryption occurs as thresholds are met.</>
+                        <>Deadline: Commitments accepted until the deadline. <strong className="text-white/90 font-medium">Decryption still occurs as thresholds are met.</strong></>
                       )}
                     </div>
                 </div>

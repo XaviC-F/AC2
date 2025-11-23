@@ -152,7 +152,7 @@ def create_objective(o: Objective):
         "resolution_strategy": o.resolution_strategy,
         "minimum_number": o.minimum_number,
         "commitments": [],
-        "published": False,
+        "closed": False,
         "modified_at": datetime.utcnow().isoformat(),
         "encryption_seed": encryption_seed,
         "committed_people": []
@@ -166,7 +166,12 @@ def commit(objective_id: str, c: Commitment):
     objective = objectives_col.find_one({"_id": ObjectId(objective_id)})
     if objective is None:
         return {"message": "Objective not found."}
-    elif is_past_resolution_date(objective):
+    
+    resolution_strategy = objective.get("resolution_strategy", "ASAP").upper()
+    if resolution_strategy == "ASAP" and objective.get("closed"):
+        return {"message": "Objective already resolved (ASAP strategy)."}
+        
+    if is_past_resolution_date(objective):
         return {"message": "The resolution date has been passed."}
 
     invited_names = objective.get("invited_people", [])
@@ -181,8 +186,10 @@ def commit(objective_id: str, c: Commitment):
         return {"message": "Internal error restoring encryption state."}
     
     # Perform Encryption
-    # c.Number is interpreted as the threshold
-    ciphertext, points = encrypter.commit(c.name, threshold=c.Number)
+    # c.Number is interpreted as the threshold. 
+    # If 0 (decline), we map to -1 for noise generation.
+    threshold_val = -1 if c.Number == 0 else c.Number
+    ciphertext, points = encrypter.commit(c.name, threshold=threshold_val)
     
     # Create commitment record
     # Convert points to strings for MongoDB (can't handle 127-bit ints)
@@ -191,6 +198,7 @@ def commit(objective_id: str, c: Commitment):
         "ciphertext": ciphertext,
         "points": points_to_db(points),
         "committed_at": datetime.utcnow().isoformat(),
+        "is_decline": (c.Number == 0)
     }
     
     # Update DB: push commitment
@@ -206,23 +214,42 @@ def commit(objective_id: str, c: Commitment):
         }
     )
     
-    # Check for resolution (Decryption)
+    # Check for resolution (Decryption) or Closing
     objective = objectives_col.find_one({"_id": ObjectId(objective_id)})
-    decrypter = restore_decrypter(objective)
     
-    revealed_names = decrypter.decrypt()
+    # Check if everyone has responded (committed or declined)
+    eligible_names = objective.get("eligible_people") or objective.get("invited_people", [])
+    num_commitments = len(objective.get("commitments", []))
     
-    if revealed_names:
+    if num_commitments >= len(eligible_names):
+        # Everyone has responded, so we can close the objective
         objectives_col.update_one(
             {"_id": ObjectId(objective_id)},
-            {
-                "$set": {
-                    "published": True,
-                    "committed_people": revealed_names,
-                    "modified_at": datetime.utcnow().isoformat()
-                }
-            }
+            {"$set": {"closed": True}}
         )
+        objective["closed"] = True # Update local copy for next checks
+
+    resolution_strategy = objective.get("resolution_strategy", "ASAP").upper()
+    
+    should_decrypt = True
+    # Both strategies should attempt decryption immediately.
+    # The difference is purely in commitment acceptance (handled above).
+
+    if should_decrypt:
+        decrypter = restore_decrypter(objective)
+        revealed_names = decrypter.decrypt()
+        
+        if revealed_names:
+            objectives_col.update_one(
+                {"_id": ObjectId(objective_id)},
+                {
+                    "$set": {
+                        "closed": True,
+                        "committed_people": revealed_names,
+                        "modified_at": datetime.utcnow().isoformat()
+                    }
+                }
+            )
         
     return {"message": "Commitment stored.", "ciphertext": ciphertext}
 
@@ -231,21 +258,64 @@ def serve_view(objective_id: str):
     objective = objectives_col.find_one({"_id": ObjectId(objective_id)})
     if not objective:
         raise HTTPException(status_code=404, detail="Objective not found")
+    
+    # Check if deadline has passed and objective not yet closed
+    if not objective.get("closed") and is_past_resolution_date(objective):
+        # Process the objective now that deadline has passed
+        decrypter = restore_decrypter(objective)
+        revealed_names = decrypter.decrypt()
         
+        if revealed_names:
+            objectives_col.update_one(
+                {"_id": ObjectId(objective_id)},
+                {
+                    "$set": {
+                        "closed": True,
+                        "committed_people": revealed_names,
+                        "modified_at": datetime.utcnow().isoformat()
+                    }
+                }
+            )
+            # Reload objective to get updated data
+            objective = objectives_col.find_one({"_id": ObjectId(objective_id)})
+        
+    # Convert commitment data for frontend display
+    commitments_display = []
+    for c in objective.get("commitments", []):
+        commitment_data = {
+            "ciphertext": c.get("ciphertext"),
+            "points": c.get("points"),  # Already in [[x, y], ...] format as strings
+            "committed_at": c.get("committed_at"),
+            "decrypted": c.get("decrypted", False),
+            "is_decline": c.get("is_decline", False)
+        }
+        # Include decryption details if available
+        if c.get("decrypted"):
+            commitment_data["decrypted_name"] = c.get("decrypted_name")
+            commitment_data["threshold"] = c.get("threshold")
+            commitment_data["coefficients"] = c.get("coefficients", [])
+            commitment_data["decryption_level"] = c.get("decryption_level")
+        commitments_display.append(commitment_data)
+
+    # Build response
     resp = {
         "title": objective.get("title"),
         "description": objective.get("description"),
         "invited_count": len(objective.get("invited_people", [])),
         "resolution_date": objective.get("resolution_date"),
-        "published": objective.get("published"),
-        "committed_people": objective.get("committed_people") if objective.get("published") else None
+        "closed": objective.get("closed"),
+        "committed_people": objective.get("committed_people") if objective.get("closed") else None,
+        "commitments": commitments_display,
+        "resolution_strategy": objective.get("resolution_strategy", "ASAP"),
+        "minimum_number": objective.get("minimum_number", 1),
+        "invited_count": len(objective.get("invited_people", []))
     }
     return resp
 
 @app.get("/recently_published")
 def get_most_recently_published(limit: int = 10):
     objectives = (
-        objectives_col.find({"published": True}).sort("modified_at", -1).limit(limit)
+        objectives_col.find({"closed": True}).sort("modified_at", -1).limit(limit)
     )
     return list(
         map(

@@ -20,6 +20,18 @@ class NameHolder:
 
     def is_member(self, name: str) -> bool:
         return self._hash_name(name) in self.hashes
+    
+    def check_and_consume(self, name: str) -> bool:
+        """
+        Check if name is a member and remove its hash if found.
+        This prevents duplicate commitments from the same person.
+        Returns True if the name was found (and consumed), False otherwise.
+        """
+        name_hash = self._hash_name(name)
+        if name_hash in self.hashes:
+            self.hashes.remove(name_hash) # simulating future where we've authenticated the name and can delete
+            return True
+        return False
 
 class CommitEncrypter:
     def __init__(self, name_holder: NameHolder, min_count: int = 1, seed: str = None):
@@ -112,16 +124,19 @@ class CommitEncrypter:
         Points below the noise limit are (0, 0) to indicate no data.
         threshold: raw number of people required (1 to n). -1 for never.
         """
-        # Check membership first
-        if not self.name_holder.is_member(name):
-            # Not in group: Return all zeros
+        # Check membership and consume name to prevent duplicate commits
+        if not self.name_holder.check_and_consume(name):
+            # Not in group or already used: Return all zeros
             points = [(0, 0) for _ in range(self.n)]
             return secrets.token_hex(16), points
 
         if threshold == -1:
-            # All noise (all zeros)
+            # All noise (all zeros) but use a random key for ciphertext to prevent analysis
+            # This ensures "declined" responses look like commitments but are decryptable by nothing
             points = [(0, 0) for _ in range(self.n)]
-            return secrets.token_hex(16), points
+            random_key = secrets.randbelow(self.MOD)
+            ciphertext = self._encrypt_name(random_key, name) # Encrypt with random key
+            return ciphertext, points
             
         # Clamp threshold to [1, n]
         p_m = max(1, min(threshold, self.n))
