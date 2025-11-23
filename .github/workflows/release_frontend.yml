@@ -48,7 +48,7 @@ jobs:
 
     - name: Build and push Docker image
       id: build-image
-      working-directory: .
+      working-directory: ./ac2_frontend
       run: |
         # Generate image tag using git commit SHA and timestamp
         IMAGE_TAG="${GITHUB_SHA:0:8}-$(date +%s)"
